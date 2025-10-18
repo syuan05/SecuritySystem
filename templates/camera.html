@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Camera View</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='camera.css') }}">
+</head>
+
+<body>
+  <header>
+    <a href="/" class="back-btn">← Back to List</a>
+    <h1 id="cameraTitle">Camera - Detailed View</h1>
+  </header>
+
+  <main class="camera-layout">
+    <!-- ===== 左側設定面板 ===== -->
+    <section class="left-panel">
+      <div class="settings-list">
+
+        <!-- Climbing -->
+        <div class="setting-card">
+          <div class="setting-row">
+            <span class="setting-label">Climbing</span>
+            <label class="switch">
+              <input id="climb-switch" type="checkbox">
+              <span class="slider"></span>
+            </label>
+          </div>
+          <div class="setting-btn">
+            <a id="climb-time" class="time-link">[--:-- ~ --:--]</a>
+          </div>
+        </div>
+
+        <!-- Falling -->
+        <div class="setting-card">
+          <div class="setting-row">
+            <span class="setting-label">Falling</span>
+            <label class="switch">
+              <input id="fall-switch" type="checkbox">
+              <span class="slider"></span>
+            </label>
+          </div>
+          <div class="setting-btn">
+            <a id="fall-time" class="time-link">[--:-- ~ --:--]</a>
+          </div>
+        </div>
+
+        <!-- Entry/Exit Fence -->
+        <div class="setting-card">
+          <div class="setting-row">
+            <span class="setting-label">Entry/Exit Records</span>
+            <a data-type="inout" class="fence-btn">+Edit Fence</a>
+          </div>
+          <div id="inout_panel" class="fence-panel hidden"></div>
+        </div>
+
+        <!-- Fence Intrusion -->
+        <div class="setting-card">
+          <div class="setting-row">
+            <span class="setting-label">Fence Intrusion</span>
+            <a data-type="intrusion" class="fence-btn">+Edit Fence</a>
+          </div>
+          <div id="intrusion_panel" class="fence-panel hidden"></div>
+        </div>
+
+        <!-- Crowd Counting -->
+        <div class="setting-card">
+          <div class="setting-row">
+            <span class="setting-label">Crowd Counting</span>
+            <a data-type="crowd" class="fence-btn">+Edit Fence</a>
+          </div>
+          <div id="crowd_panel" class="fence-panel hidden"></div>
+        </div>
+
+        <!-- People Detection -->
+        <div class="setting-card">
+          <div class="setting-row">
+            <span class="setting-label">People Detection</span>
+            <a data-type="people" class="fence-btn">+Edit Fence</a>
+          </div>
+          <div id="people_panel" class="fence-panel hidden"></div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ===== 右側影片區 ===== -->
+    <section class="video-panel">
+      <div class="video-container">
+        <video id="cameraVideo" controls></video>
+        <canvas id="drawCanvas"></canvas>
+      </div>
+    </section>
+  </main>
+
+  <script type="module" src="{{ url_for('static', filename='camera.js') }}"></script>
+</body>
+</html>

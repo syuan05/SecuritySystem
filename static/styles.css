@@ -1,0 +1,106 @@
+/* ====== General layout ====== */
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background-color: #f7f7f7;
+}
+
+/* ====== Header ====== */
+header {
+    background: #2c3e50;
+    color: white;
+    padding: 10px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+h1 {
+    margin: 0;
+    font-size: 24px;
+}
+
+/* ====== 導覽連結（靠右） ====== */
+.nav-right {
+    display: flex;
+    gap: 25px;
+}
+
+.nav-link {
+    color: #ecf0f1;
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 16px;
+    transition: color 0.2s ease;
+}
+
+.nav-link:hover {
+    color: #ffffff;
+}
+
+.nav-link.active {
+    border-bottom: 2px solid #3498db;
+    padding-bottom: 2px;
+    color: #ffffff;
+}
+
+/* ====== Camera List ====== */
+/* === 卡片列表 === */
+.camera-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  padding: 20px;
+  justify-content: flex-start;
+}
+
+/* === 單張攝影機卡片 === */
+.camera-card {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  padding: 12px;
+  width: 280px;           /* 固定寬度 */
+  overflow: hidden;       /* 防止內容外溢 */
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: transform 0.2s ease;
+}
+
+.camera-card:hover {
+  transform: translateY(-4px);
+}
+
+/* === 影片容器控制 === */
+.camera-card video {
+  width: 100%;            /* 影片寬度自適應卡片 */
+  height: 160px;          /* 統一高度（可依需求調整） */
+  object-fit: cover;      /* 裁切填滿而不變形 */
+  border-radius: 8px;
+  margin: 8px 0;
+}
+
+/* === 卡片內文字 === */
+.camera-info h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.view-btn {
+  display: inline-block;
+  background: #007bff;
+  color: white;
+  padding: 6px 12px;
+  border-radius: 6px;
+  text-decoration: none;
+  width: fit-content;
+  margin-top: 8px;
+  transition: background 0.2s;
+}
+
+.view-btn:hover {
+  background: #0056b3;
+}
