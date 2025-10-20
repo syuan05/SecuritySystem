@@ -15,7 +15,7 @@ window.onload = async function () {
     const res = await fetch(`/api/camera/${cameraId}`);
     const data = await res.json();
 
-    console.log("✅ Loaded camera data:", data);
+    console.log("Loaded camera data:", data);
 
     if (data.error) {
       alert("Camera not found");
@@ -137,7 +137,7 @@ window.onload = async function () {
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
     drawing = true;
-    // alert("📸 點擊兩點以建立圍籬線");
+    // alert("點擊兩點以建立圍籬線");
   }
 
   canvas.addEventListener("click", (e) => {
@@ -221,7 +221,7 @@ window.onload = async function () {
       end_time: end,
     };
 
-    console.log("🕒 更新排程:", payload);
+    console.log("更新排程:", payload);
 
     const res = await fetch(`/api/schedule/${type}`, {
       method: "POST",
@@ -230,7 +230,7 @@ window.onload = async function () {
     });
 
     const result = await res.json();
-    console.log("✅ 伺服器回應:", result);
+    console.log("伺服器回應:", result);
   }
 
   async function toggleMode(type, enabled) {

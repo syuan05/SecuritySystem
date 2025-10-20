@@ -188,7 +188,7 @@ def add_fence(type):
         """, (
             data["camera_id"],
             data["name"],
-            json.dumps({"A": data["point_a"], "B": data["point_b"]}),  # ✅ 改這裡
+            json.dumps({"A": data["point_a"], "B": data["point_b"]}), 
             data["direction"]
         ))
         obj_id = cur.lastrowid
