@@ -161,3 +161,11 @@ header h1 {
 .switch input:checked + .slider:before {
   transform: translateX(22px);
 }
+
+.time-input {
+  width: 80px;
+  height: 28px;
+  text-align: center;
+  padding: 2px 4px;
+  box-sizing: border-box;
+}

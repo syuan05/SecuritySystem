@@ -29,28 +29,60 @@ window.onload = async function () {
     // === 綁定開關 ===
     const climbSwitch = document.getElementById("climb-switch");
     const fallSwitch = document.getElementById("fall-switch");
-
-    console.log("Found climbSwitch:", !!climbSwitch, "fallSwitch:", !!fallSwitch);
+    climbSwitch.addEventListener("change", () =>
+      toggleMode("climbing", climbSwitch.checked)
+    );
+    fallSwitch.addEventListener("change", () =>
+      toggleMode("falling", fallSwitch.checked)
+    );
 
     climbSwitch.checked = Boolean(data.climbing_detection_mode);
     fallSwitch.checked = Boolean(data.falling_detection_mode);
 
-    console.log("🎯 climb:", climbSwitch.checked, "fall:", fallSwitch.checked);
-
     // === 顯示時間 ===
-    const s = data.schedules || {};
-    document.getElementById("climb-time").textContent =
-      data.climbing_detection_mode && s.climbing
-        ? `[${s.climbing.start} ~ ${s.climbing.end}]`
-        : "[--:-- ~ --:--]";
+    const s = data.schedules || {}; // ← ⚠️ 你漏了這行
 
-    document.getElementById("fall-time").textContent =
-      data.falling_detection_mode && s.falling
-        ? `[${s.falling.start} ~ ${s.falling.end}]`
-        : "[--:-- ~ --:--]";
+    // === Climbing ===
+    // === Climbing ===
+    const climbTime = document.getElementById("climb-time");
+    const cs = s.climbing || { start: "00:00", end: "23:59" };
+    climbTime.innerHTML = `
+  <input type="text" id="climbing-start" class="time-input" value="${cs.start}" ${data.climbing_detection_mode ? "" : "disabled"}>
+  ~
+  <input type="text" id="climbing-end" class="time-input" value="${cs.end}" ${data.climbing_detection_mode ? "" : "disabled"}>
+`;
+    if (data.climbing_detection_mode) {
+      document.getElementById("climbing-start").addEventListener("change", () => updateSchedule("climbing"));
+      document.getElementById("climbing-end").addEventListener("change", () => updateSchedule("climbing"));
+    }
+
+    // === Falling ===
+    const fallTime = document.getElementById("fall-time");
+    const fs = s.falling || { start: "00:00", end: "23:59" };
+    fallTime.innerHTML = `
+  <input type="text" id="falling-start" class="time-input" value="${fs.start}" ${data.falling_detection_mode ? "" : "disabled"}>
+  ~
+  <input type="text" id="falling-end" class="time-input" value="${fs.end}" ${data.falling_detection_mode ? "" : "disabled"}>
+`;
+
+    if (data.falling_detection_mode) {
+      document.getElementById("falling-start").addEventListener("change", () => updateSchedule("falling"));
+      document.getElementById("falling-end").addEventListener("change", () => updateSchedule("falling"));
+    }
+
   }
-
   await loadCamera();
+  flatpickr(".time-input", {
+    enableTime: true,
+    noCalendar: true,
+    dateFormat: "H:i",
+    time_24hr: true,
+    onChange: function (selectedDates, dateStr, instance) {
+      const id = instance.element.id;
+      const type = id.split("-")[0];
+      updateSchedule(type);
+    }
+  });
 
   /* === 監聽所有 fence-btn === */
   document.querySelectorAll(".fence-btn").forEach(btn => {
@@ -178,7 +210,86 @@ window.onload = async function () {
     document.getElementById("saveNewFenceBtn").onclick = () => saveFence(points);
   }
 
-  /* === 儲存圍籬 === */
+  // === 更新時間排程到後端 ===
+  async function updateSchedule(type) {
+    const start = document.getElementById(`${type}-start`).value;
+    const end = document.getElementById(`${type}-end`).value;
+
+    const payload = {
+      camera_id: cameraId,
+      start_time: start,
+      end_time: end,
+    };
+
+    console.log("🕒 更新排程:", payload);
+
+    const res = await fetch(`/api/schedule/${type}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    const result = await res.json();
+    console.log("✅ 伺服器回應:", result);
+  }
+
+  async function toggleMode(type, enabled) {
+    // === 1️⃣ 更新後端狀態 ===
+    const res = await fetch(`/api/mode/${type}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        camera_id: cameraId,
+        enabled: enabled,
+      }),
+    });
+    const result = await res.json();
+    console.log("Mode updated:", result);
+
+    const camRes = await fetch(`/api/camera/${cameraId}`);
+    const data = await camRes.json();
+    const s = data.schedules || {};
+    const sched = s[type] || { start: "00:00", end: "23:59" };
+
+    const container =
+      type === "climbing"
+        ? document.getElementById("climb-time")
+        : document.getElementById("fall-time");
+
+    container.innerHTML = `
+  <input type="text" id="${type}-start" class="time-input" value="${sched.start}">
+  ~
+  <input type="text" id="${type}-end" class="time-input" value="${sched.end}">
+`;
+
+
+    const startEl = document.getElementById(`${type}-start`);
+    const endEl = document.getElementById(`${type}-end`);
+
+    if (enabled) {
+      startEl.disabled = false;
+      endEl.disabled = false;
+      startEl.addEventListener("change", () => updateSchedule(type));
+      endEl.addEventListener("change", () => updateSchedule(type));
+    } else {
+      startEl.disabled = true;
+      endEl.disabled = true;
+    }
+    flatpickr(".time-input", {
+      enableTime: true,
+      noCalendar: true,
+      dateFormat: "H:i",
+      time_24hr: true,
+      onChange: function (selectedDates, dateStr, instance) {
+        const id = instance.element.id; // e.g. climbing-start
+        const type = id.split("-")[0];  // "climbing" or "falling"
+        updateSchedule(type);
+      }
+    });
+
+  }
+
+
   async function saveFence(points) {
     const payload = {
       camera_id: cameraId,
@@ -206,4 +317,11 @@ window.onload = async function () {
       // alert("❌ 錯誤：" + result.message);
     }
   }
+  // flatpickr("input[type='time']", {
+  //   enableTime: true,
+  //   noCalendar: true,
+  //   dateFormat: "H:i",
+  //   time_24hr: true,
+  // });
 };
+

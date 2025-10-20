@@ -62,15 +62,16 @@ def get_camera(camera_id):
         cur.close(); conn.close()
         return jsonify({"error": "Camera not found"}), 404
 
-    # 讀取 schedule，只抓 falling / climbing 且啟用中
+    # 讀取該攝影機的 schedule
     cur.execute("""
         SELECT function_type, start_time, end_time
         FROM func_schedules
-        WHERE gate_id IS NULL
+        WHERE camera_id = %s
           AND function_type IN ('falling', 'climbing')
           AND is_active = 1;
-    """)
+    """, (camera_id,))
     schedules = cur.fetchall()
+
     cur.close(); conn.close()
 
     def fmt_time(t):
@@ -78,15 +79,12 @@ def get_camera(camera_id):
         if t is None:
             return "--:--"
         if isinstance(t, str):
-            return t
-        if isinstance(t, (int, float)):
-            return str(t)
-        # 若是 timedelta，轉換為總秒數再格式化
+            return t[:5]
         if hasattr(t, "seconds"):
             total_seconds = int(t.total_seconds())
-            hours = (total_seconds // 3600) % 24
-            minutes = (total_seconds % 3600) // 60
-            return f"{hours:02d}:{minutes:02d}"
+            h = (total_seconds // 3600) % 24
+            m = (total_seconds % 3600) // 60
+            return f"{h:02d}:{m:02d}"
         return str(t)
 
     cam["schedules"] = {
@@ -137,7 +135,6 @@ def get_fence(type):
     """, (func_type,))
     schedules = cur.fetchall()
 
-    # ✅ 改成用 fmt_time
     sched_map = {
         s["gate_id"]: {
             "start_time": fmt_time(s["start_time"]),
@@ -198,9 +195,9 @@ def add_fence(type):
 
         # === Step 2. 新增對應的 schedule ===
         cur.execute("""
-            INSERT INTO func_schedules (gate_id, function_type, start_time, end_time, is_active)
-            VALUES (%s, %s, %s, %s, 1);
-        """, (obj_id, func_type, data["start_time"], data["end_time"]))
+            INSERT INTO func_schedules (camera_id, gate_id, function_type, start_time, end_time, is_active)
+            VALUES (%s, %s, %s, %s, %s, 1);
+        """, (data["camera_id"], obj_id, func_type, data["start_time"], data["end_time"]))
 
         conn.commit()
         return jsonify({"status": "ok", "id": obj_id})
@@ -230,6 +227,79 @@ def update_or_delete_fence(fence_id):
     conn.commit(); cur.close(); conn.close()
     return jsonify({"status": "ok"})
 
+@app.route("/api/mode/<mode>", methods=["POST"])
+def update_mode(mode):
+    data = request.get_json()
+    camera_id = data["camera_id"]
+    enabled = data["enabled"]
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    try:
+        # 1️⃣ 更新 cameras 表
+        cur.execute(f"""
+            UPDATE cameras 
+            SET {mode}_detection_mode = %s 
+            WHERE camera_id = %s;
+        """, (enabled, camera_id))
+
+        # 2️⃣ 同步更新 func_schedules 啟用狀態
+        cur.execute("""
+            UPDATE func_schedules
+            SET is_active = %s
+            WHERE camera_id = %s AND function_type = %s;
+        """, (1 if enabled else 0, camera_id, mode))
+
+        conn.commit()
+        return jsonify({"status": "ok", "message": f"{mode} mode updated"})
+
+    except Exception as e:
+        conn.rollback()
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+    finally:
+        cur.close()
+        conn.close()
+
+    return jsonify({"status": "ok", "message": f"{mode} mode updated"})
+
+@app.route("/api/schedule/<mode>", methods=["POST"])
+def update_schedule(mode):
+    data = request.get_json()
+    camera_id = data["camera_id"]
+    start = data["start_time"]
+    end = data["end_time"]
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    # 檢查是否已有紀錄
+    cur.execute("""
+        SELECT COUNT(*) AS cnt FROM func_schedules
+        WHERE camera_id=%s AND function_type=%s;
+    """, (camera_id, mode))
+    exists = cur.fetchone()[0]
+
+    if exists:
+        # 更新既有時間設定
+        cur.execute("""
+            UPDATE func_schedules
+            SET start_time=%s, end_time=%s
+            WHERE camera_id=%s AND function_type=%s AND is_active=1;
+        """, (start, end, camera_id, mode))
+    else:
+        # 若沒有該相機的紀錄 → 新增一筆
+        cur.execute("""
+            INSERT INTO func_schedules (camera_id, function_type, start_time, end_time, is_active)
+            VALUES (%s, %s, %s, %s, 1);
+        """, (camera_id, mode, start, end))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+    return jsonify({"status": "ok", "message": f"{mode} schedule updated"})
+    
 
 if __name__ == '__main__':
     app.run(debug=True)

@@ -1,8 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-  <meta charset="UTF-8">
+  <meta charset="en">
   <title>Camera View</title>
+
   <link rel="stylesheet" href="{{ url_for('static', filename='camera.css') }}">
 </head>
 
@@ -27,7 +29,7 @@
             </label>
           </div>
           <div class="setting-btn">
-            <a id="climb-time" class="time-link">[--:-- ~ --:--]</a>
+            <div id="climb-time" class="time-link">[--:-- ~ --:--]</div>
           </div>
         </div>
 
@@ -41,7 +43,7 @@
             </label>
           </div>
           <div class="setting-btn">
-            <a id="fall-time" class="time-link">[--:-- ~ --:--]</a>
+            <div id="fall-time" class="time-link">[--:-- ~ --:--]</div>
           </div>
         </div>
 
@@ -94,5 +96,9 @@
   </main>
 
   <script type="module" src="{{ url_for('static', filename='camera.js') }}"></script>
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+
 </body>
+
 </html>
