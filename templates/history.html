@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Event History</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='history.css') }}">
+</head>
+<body>
+  <header>
+    <h1>Event History</h1>
+    <a href="/" class="back-btn">← Back</a>
+  </header>
+
+  <!-- Filter Bar -->
+  <section class="filter-bar">
+    <div class="filter-group">
+      <label>Start Date:</label>
+      <input type="date" id="startDate">
+      <label>End Date:</label>
+      <input type="date" id="endDate">
+    </div>
+    <div class="filter-group">
+      <label>Type:</label>
+      <select id="typeSelect">
+        <option value="">All</option>
+        <option value="inout_cross">In/Out Crossing</option>
+        <option value="intrusion">Intrusion</option>
+        <option value="crowd">Crowd</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <label>Level:</label>
+      <select id="levelSelect">
+        <option value="">All</option>
+        <option value="heavy">Heavy</option>
+        <option value="light">Light</option>
+      </select>
+    </div>
+    <button id="filterBtn">Filter</button>
+  </section>
+
+  <!-- Table -->
+  <main>
+    <table id="eventTable">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Camera</th>
+          <th>Gate</th>
+          <th>Event Type</th>
+          <th>Alert Level</th>
+          <th>Timestamp</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </main>
+
+  <script src="{{ url_for('static', filename='history.js') }}"></script>
+</body>
+</html>

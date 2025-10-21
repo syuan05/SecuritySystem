@@ -297,14 +297,22 @@ window.onload = async function () {
 
 
   async function saveFence(points) {
+    // 取得實際影像顯示尺寸
+    const videoWidth = imgStream.clientWidth;
+    const videoHeight = imgStream.clientHeight;
+
+    // 將座標轉為相對比例（0~1）
+    const normA = [points[0][0] / videoWidth, points[0][1] / videoHeight];
+    const normB = [points[1][0] / videoWidth, points[1][1] / videoHeight];
+
     const payload = {
       camera_id: cameraId,
       name: document.getElementById("newFenceName").value,
       direction: document.getElementById("newFenceDir").value,
       start_time: document.getElementById("newStart").value,
       end_time: document.getElementById("newEnd").value,
-      point_a: points[0],
-      point_b: points[1],
+      point_a: normA,
+      point_b: normB,
     };
 
     const res = await fetch(`/api/fence/${currentType}/add`, {
@@ -312,17 +320,30 @@ window.onload = async function () {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
+
     const result = await res.json();
 
     if (result.status === "ok") {
-      // alert("✅ 新圍籬已儲存！");
+      // ✅ 清空畫布
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      points = [];
+      drawing = false;
+
+      // ✅ 重新載入列表
       const panel = document.getElementById(`${currentType}_panel`);
       const r = await fetch(`/api/fence/${currentType}?camera_id=${cameraId}`);
       renderFenceList(await r.json(), currentType, panel);
-    } else {
-      // alert("❌ 錯誤：" + result.message);
+      
+      await fetch(`/api/reload_gates/${cameraId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ camera_id: cameraId })
+      });
+      console.log("新圍籬已儲存並清除畫布");
     }
+
   }
+
   // flatpickr("input[type='time']", {
   //   enableTime: true,
   //   noCalendar: true,

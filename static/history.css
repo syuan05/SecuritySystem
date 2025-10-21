@@ -1,0 +1,118 @@
+/* ==== Layout ==== */
+body {
+  font-family: "Inter", Arial, sans-serif;
+  background: #ffffff;
+  color: #333;
+  margin: 0;
+  padding: 30px;
+}
+
+/* ==== Header ==== */
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+  border-bottom: 2px solid #e0e0e0;
+  padding-bottom: 10px;
+}
+
+h1 {
+  font-size: 28px;
+  font-weight: 600;
+  color: #007bff;
+}
+
+a.back-btn {
+  text-decoration: none;
+  color: #555;
+  font-size: 16px;
+  transition: color 0.2s ease;
+}
+a.back-btn:hover {
+  color: #007bff;
+}
+
+/* ==== Filter Bar ==== */
+.filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  background: #f9f9f9;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  padding: 12px 20px;
+  gap: 15px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.filter-group label {
+  font-weight: 500;
+  margin-right: 5px;
+}
+
+.filter-group input,
+.filter-group select {
+  padding: 6px 8px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  background: #fff;
+  color: #333;
+}
+
+#filterBtn {
+  background: #007bff;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 16px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background 0.2s;
+}
+#filterBtn:hover {
+  background: #005dc1;
+}
+
+/* ==== Table ==== */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+thead {
+  background: #f1f5fb;
+}
+
+th, td {
+  text-align: center;
+  padding: 10px 12px;
+  border-bottom: 1px solid #e6e6e6;
+  font-size: 15px;
+}
+
+tbody tr:hover {
+  background: #f9faff;
+}
+
+/* ==== Alert Level Styles ==== */
+td.heavy {
+  color: #dc3545;
+  font-weight: bold;
+}
+td.low {
+  color: #28a745;
+}
+
+/* ==== No Data ==== */
+.no-data {
+  color: #999;
+  text-align: center;
+  padding: 20px;
+  font-style: italic;
+}

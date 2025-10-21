@@ -5,25 +5,15 @@ from dotenv import load_dotenv
 import os
 import json
 import cv2
+from detector.video_manager import VideoManager
+import threading
+from db_utils import get_db_connection
+import time
 
-
-# ====== 載入 .env ======
+manager = VideoManager()
 load_dotenv()
-
 app = Flask(__name__)
 
-# ====== 從環境變數讀取資料庫設定 ======
-DB_CONFIG = {
-    "host": os.getenv("DB_HOST"),
-    "port": int(os.getenv("DB_PORT")),
-    "database": os.getenv("DB_NAME"),
-    "user": os.getenv("DB_USER"),
-    "password": os.getenv("DB_PASSWORD"),
-    "ssl_disabled": False
-}
-
-def get_db_connection():
-    return mysql.connector.connect(**DB_CONFIG)
 
 # ====== 頁面 ======
 @app.route('/')
@@ -34,52 +24,27 @@ def index():
 def camera_page():
     return render_template('camera.html')
 
-@app.route('/video_feed/<int:camera_id>')
+@app.route('/history.html')
+def history_page():
+    return render_template('history.html')
 
 @app.route("/video_feed/<int:camera_id>")
 def video_feed(camera_id):
-    """從資料庫撈出影片連結，推流到前端"""
-    # === 1️⃣ 從資料庫取得 camera_url ===
-    conn = get_db_connection()
-    cur = conn.cursor(dictionary=True)
-    cur.execute("SELECT camera_url FROM cameras WHERE camera_id=%s;", (camera_id,))
-    row = cur.fetchone()
-    cur.close(); conn.close()
-
-    if not row:
-        return "Camera not found", 404
-
-    camera_url = row["camera_url"]
-    print(f"[INFO] 開啟串流：Camera {camera_id} → {camera_url}")
-
-    # === 2️⃣ 讀取影片/RTSP ===
-    cap = cv2.VideoCapture(camera_url)
-    if not cap.isOpened():
-        return f"無法開啟串流：{camera_url}", 500
-
-    # === 3️⃣ 推流產生器 ===
     def generate():
         while True:
-            ok, frame = cap.read()
-            if not ok:
-                # 如果是影片檔案 → 重新循環播放
-                cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
-                continue
+            # ✅ 改這裡：遍歷 .values()
+            for worker in manager.workers.values():
+                if worker.camera_id == camera_id:
+                    if hasattr(worker, "last_frame") and worker.last_frame is not None:
+                        _, buffer = cv2.imencode(".jpg", worker.last_frame)
+                        frame = buffer.tobytes()
+                        yield (b"--frame\r\n"
+                               b"Content-Type: image/jpeg\r\n\r\n" + frame + b"\r\n")
+                    break
+            time.sleep(0.03)
+    return Response(generate(), mimetype="multipart/x-mixed-replace; boundary=frame")
 
-            # （你可以在這裡加 YOLO 偵測、畫框、門線等）
-            cv2.putText(frame, f"Camera {camera_id}", (40, 60),
-                        cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
 
-            # 轉成 JPEG bytes
-            _, buffer = cv2.imencode('.jpg', frame)
-            frame_bytes = buffer.tobytes()
-
-            yield (b'--frame\r\n'
-                   b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
-
-    # === 4️⃣ 回傳 Response ===
-    return Response(generate(),
-                    mimetype='multipart/x-mixed-replace; boundary=frame')
 
 # ====== API ======
 @app.route('/api/cameras')
@@ -348,6 +313,76 @@ def update_schedule(mode):
     conn.close()
     return jsonify({"status": "ok", "message": f"{mode} schedule updated"})
     
+@app.route("/api/reload_gates/<int:camera_id>", methods=["POST"])
+def reload_gates(camera_id):
+    from detector.video_manager import manager_instance
+    worker = manager.workers.get(camera_id)
+    if worker:
+        worker.reload_gates()
+        return jsonify({"status": "ok"})
+    return jsonify({"status": "error", "message": "worker not found"}), 404
 
-if __name__ == '__main__':
-    app.run(debug=True)
+@app.route('/api/events')
+def get_events():
+    conn = get_db_connection()
+    cur = conn.cursor(dictionary=True)
+
+    # 取得查詢參數
+    event_type = request.args.get("type")
+    level = request.args.get("level")
+    start = request.args.get("start")
+    end = request.args.get("end")
+
+    query = """
+        SELECT 
+            e.event_id,
+            e.camera_id,
+            c.camera_name,
+            e.gate_id,
+            g.gate_name,
+            e.event_type,
+            e.alert_level,
+            e.timestamp
+        FROM events e
+        LEFT JOIN cameras c ON e.camera_id = c.camera_id
+        LEFT JOIN gates g ON e.gate_id = g.gate_id
+        WHERE 1=1
+    """
+    params = []
+
+    # 動態加條件
+    if event_type:
+        query += " AND e.event_type = %s"
+        params.append(event_type)
+
+    if level:
+        query += " AND e.alert_level = %s"
+        params.append(level)
+
+    if start:
+        query += " AND e.timestamp >= %s"
+        params.append(start)
+
+    if end:
+        query += " AND e.timestamp <= %s"
+        params.append(end)
+
+    query += " ORDER BY e.timestamp DESC"
+
+    cur.execute(query, params)
+    data = cur.fetchall()
+    cur.close()
+    conn.close()
+
+    return jsonify(data)
+
+
+def start_detection_system():
+    manager.load_all_cameras()   # 從資料庫撈出所有攝影機
+    manager.start_all()          # 為每支攝影機啟動 YOLO 偵測 worker
+
+
+if __name__ == "__main__":
+    if os.environ.get("WERKZEUG_RUN_MAIN") == "true":  # 只在重載後主進程啟動時執行
+        threading.Thread(target=start_detection_system, daemon=True).start()
+    app.run(host="0.0.0.0", port=5000, debug=True)
