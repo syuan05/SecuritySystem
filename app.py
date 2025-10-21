@@ -1,9 +1,10 @@
 # app.py
-from flask import Flask, render_template, jsonify, request
+from flask import Flask, render_template, jsonify, request, Response
 import mysql.connector
 from dotenv import load_dotenv
 import os
 import json
+import cv2
 
 
 # ====== 載入 .env ======
@@ -32,6 +33,53 @@ def index():
 @app.route('/camera.html')
 def camera_page():
     return render_template('camera.html')
+
+@app.route('/video_feed/<int:camera_id>')
+
+@app.route("/video_feed/<int:camera_id>")
+def video_feed(camera_id):
+    """從資料庫撈出影片連結，推流到前端"""
+    # === 1️⃣ 從資料庫取得 camera_url ===
+    conn = get_db_connection()
+    cur = conn.cursor(dictionary=True)
+    cur.execute("SELECT camera_url FROM cameras WHERE camera_id=%s;", (camera_id,))
+    row = cur.fetchone()
+    cur.close(); conn.close()
+
+    if not row:
+        return "Camera not found", 404
+
+    camera_url = row["camera_url"]
+    print(f"[INFO] 開啟串流：Camera {camera_id} → {camera_url}")
+
+    # === 2️⃣ 讀取影片/RTSP ===
+    cap = cv2.VideoCapture(camera_url)
+    if not cap.isOpened():
+        return f"無法開啟串流：{camera_url}", 500
+
+    # === 3️⃣ 推流產生器 ===
+    def generate():
+        while True:
+            ok, frame = cap.read()
+            if not ok:
+                # 如果是影片檔案 → 重新循環播放
+                cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
+                continue
+
+            # （你可以在這裡加 YOLO 偵測、畫框、門線等）
+            cv2.putText(frame, f"Camera {camera_id}", (40, 60),
+                        cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+
+            # 轉成 JPEG bytes
+            _, buffer = cv2.imencode('.jpg', frame)
+            frame_bytes = buffer.tobytes()
+
+            yield (b'--frame\r\n'
+                   b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
+
+    # === 4️⃣ 回傳 Response ===
+    return Response(generate(),
+                    mimetype='multipart/x-mixed-replace; boundary=frame')
 
 # ====== API ======
 @app.route('/api/cameras')

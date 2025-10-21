@@ -1,5 +1,5 @@
 window.onload = async function () {
-  const video = document.getElementById("cameraVideo");
+  const imgStream = document.getElementById("videoStream");
   const canvas = document.getElementById("drawCanvas");
   const ctx = canvas.getContext("2d");
 
@@ -24,7 +24,7 @@ window.onload = async function () {
 
     // 顯示影片
     document.getElementById("cameraTitle").textContent = data.camera_name;
-    video.src = data.camera_url;
+    imgStream.src = `/video_feed/${cameraId}`;
 
     // === 綁定開關 ===
     const climbSwitch = document.getElementById("climb-switch");
@@ -72,6 +72,13 @@ window.onload = async function () {
 
   }
   await loadCamera();
+
+  imgStream.onload = function () {
+    canvas.width = imgStream.clientWidth;
+    canvas.height = imgStream.clientHeight;
+  };
+
+
   flatpickr(".time-input", {
     enableTime: true,
     noCalendar: true,
@@ -130,11 +137,10 @@ window.onload = async function () {
   function startDrawing() {
     // if (!currentType) return alert("請先選擇要新增的功能！");
     points = [];
-    video.pause();
-
-    canvas.width = video.clientWidth;
-    canvas.height = video.clientHeight;
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    canvas.width = imgStream.clientWidth;
+    canvas.height = imgStream.clientHeight;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    drawing = true;
 
     drawing = true;
     // alert("點擊兩點以建立圍籬線");

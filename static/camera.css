@@ -104,25 +104,40 @@ header h1 {
 
 /* ===== Video ===== */
 .video-panel {
-  flex: 1;
   display: flex;
   justify-content: center;
   align-items: center;
   background: #0e0e0e;
+  height: 100%;
 }
+
+/* 影片容器：用於堆疊影像與畫布 */
 .video-container {
   position: relative;
+  width: 100%;
+  max-width: 900px;      /* 可以依畫面大小調整 */
+  border-radius: 10px;
+  overflow: hidden;
 }
+.video-stream {
+  width: 100%;
+  display: block;
+  border-radius: 10px;
+}
+
 #cameraVideo {
   max-width: 100%;
   display: block;
 }
+
 #drawCanvas {
   position: absolute;
   top: 0;
   left: 0;
-  cursor: crosshair;
-  pointer-events: auto;
+  width: 100%;
+  height: 100%;
+  pointer-events: auto;     /* 允許滑鼠操作 */
+  cursor: crosshair;        /* 滑鼠變十字線 */
 }
 
 /* ===== Switch ===== */
