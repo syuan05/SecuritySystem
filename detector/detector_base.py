@@ -1,4 +1,5 @@
 # detector/detector_base.py
+# 偵測模組的抽象基底
 from abc import ABC, abstractmethod
 
 class DetectorBase(ABC):

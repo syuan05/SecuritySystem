@@ -1,4 +1,5 @@
 # db_utils.py
+# 資料庫連線管理
 import mysql.connector, os
 from dotenv import load_dotenv
 

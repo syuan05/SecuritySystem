@@ -1,4 +1,5 @@
 # detector/video_manager.py
+# 所有攝影機對應的偵測執行緒
 import threading
 from db_utils import get_db_connection
 from detector.detector_inout import InOutDetector
@@ -21,19 +22,17 @@ class VideoManager:
             camera_id = cam["camera_id"]
             camera_url = cam["camera_url"]
 
-            # 🔹 不論 gate 數量都先建立 worker
             from detector.detector_inout import InOutDetector
             worker = InOutDetector(camera_id, camera_url)
             self.workers[camera_id] = worker
 
-            # 🔹 額外印出 gate 狀態（方便 debug）
-            cur.execute("""
-                SELECT COUNT(*) AS cnt
-                FROM gates
-                WHERE camera_id = %s AND in_out_control_mode = 1;
-            """, (camera_id,))
-            cnt = cur.fetchone()["cnt"]
-            print(f"[DEBUG] Camera {camera_id} gate count = {cnt}")
+            # cur.execute("""
+            #     SELECT COUNT(*) AS cnt
+            #     FROM gates
+            #     WHERE camera_id = %s AND in_out_control_mode = 1;
+            # """, (camera_id,))
+            # cnt = cur.fetchone()["cnt"]
+            # print(f"[DEBUG] Camera {camera_id} gate count = {cnt}")
 
         cur.close()
         conn.close()
@@ -66,5 +65,5 @@ class VideoManager:
         return False
 
 
-# ✅ 全域唯一管理器實例
+# 全域唯一管理器實例
 manager_instance = VideoManager()
