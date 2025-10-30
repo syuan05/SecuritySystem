@@ -119,9 +119,9 @@ def get_fence(type):
 
     config = {
         "inout": {"table": "gates", "mode": "in_out_control_mode", "func": "in_out_control"},
-        "intrusion": {"table": "fences", "mode": "intrusion_mode", "func": "intrusion"},
-        "crowd": {"table": "zones", "mode": "crowd_count_mode", "func": "crowd_count"},
-        "people": {"table": "zones", "mode": "people_detect_mode", "func": "people_detect"}
+        "intrusion": {"table": "gates", "mode": "intrusion_mode", "func": "intrusion"},
+        "crowd": {"table": "gates", "mode": "person_count_mode", "func": "crowd_count"},
+        "people": {"table": "gates", "mode": "people_detect_mode", "func": "people_detect"}
     }
 
     if type not in config:
@@ -184,11 +184,11 @@ def add_fence(type):
     if type == "inout":
         table, func_type, mode_col = "gates", "in_out_control", "in_out_control_mode"
     elif type == "intrusion":
-        table, func_type, mode_col = "fences", "intrusion", "intrusion_mode"
+        table, func_type, mode_col = "gates", "intrusion", "intrusion_mode"
     elif type == "crowd":
-        table, func_type, mode_col = "zones", "crowd_count", "crowd_count_mode"
+        table, func_type, mode_col = "gates", "crowd_count", "person_count_mode"
     elif type == "people":
-        table, func_type, mode_col = "zones", "people_detect", "people_detect_mode"
+        table, func_type, mode_col = "gates", "people_detect", "people_detect_mode"
     else:
         return jsonify({"error": "invalid type"}), 400
 

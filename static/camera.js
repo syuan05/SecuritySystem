@@ -97,9 +97,23 @@ window.onload = async function () {
       const type = btn.dataset.type;
       currentType = type;
       const panel = document.getElementById(`${type}_panel`);
-      panel.classList.toggle("hidden");
 
-      if (!panel.classList.contains("hidden")) {
+      // 🟡 先關掉所有其他的 fence panel
+      document.querySelectorAll(".fence-panel").forEach(p => {
+        if (p !== panel) p.classList.remove("active");
+        p.classList.add("hidden");
+      });
+
+      // 🔵 切換目前這個
+      const isOpen = panel.classList.contains("active");
+      if (isOpen) {
+        panel.classList.remove("active");
+        panel.classList.add("hidden");
+      } else {
+        panel.classList.remove("hidden");
+        panel.classList.add("active");
+
+        // 🔹 若打開 -> 載入 fence 資料
         const res = await fetch(`/api/fence/${type}?camera_id=${cameraId}`);
         const data = await res.json();
         renderFenceList(data, type, panel);
@@ -135,16 +149,14 @@ window.onload = async function () {
 
   /* === 畫線 === */
   function startDrawing() {
-    // if (!currentType) return alert("請先選擇要新增的功能！");
     points = [];
     canvas.width = imgStream.clientWidth;
     canvas.height = imgStream.clientHeight;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     drawing = true;
-
-    drawing = true;
-    // alert("點擊兩點以建立圍籬線");
+    console.log("開始框選:", currentType);
   }
+
 
   canvas.addEventListener("click", (e) => {
     if (!drawing) return;
@@ -157,8 +169,15 @@ window.onload = async function () {
     if (points.length === 2) {
       drawing = false;
       drawLine(points[0], points[1]);
-      openFenceForm(points);
+
+      // 根據 currentType 決定開哪一個表單
+      if (currentType === "crowd") {
+        openCrowdFenceForm(points);
+      } else {
+        openOnewayForm(points);
+      }
     } else {
+      // 畫第一個點的黃色標記
       ctx.fillStyle = "yellow";
       ctx.beginPath();
       ctx.arc(x, y, 4, 0, 2 * Math.PI);
@@ -196,13 +215,13 @@ window.onload = async function () {
   }
 
   /* === 開啟新增圍籬表單 === */
-  function openFenceForm(points) {
+  function openOnewayForm(points) {
     const panel = document.getElementById(`${currentType}_panel`);
     panel.innerHTML = `
       <div>
         <label>fence name</label>
         <input id="newFenceName">
-        <label>direction</label>
+        <label>Allow direction</label>
         <select id="newFenceDir">
           <option value="AtoB">A → B</option>
           <option value="BtoA">B → A</option>
@@ -213,8 +232,28 @@ window.onload = async function () {
         <button id="saveNewFenceBtn">儲存</button>
       </div>
     `;
-    document.getElementById("saveNewFenceBtn").onclick = () => saveFence(points);
+    document.getElementById("saveNewFenceBtn").onclick = () => saveOnewayFence(points);
   }
+  /* === People Counting 專用新增表單 === */
+  function openCrowdFenceForm(points) {
+    const panel = document.getElementById("crowd_panel");
+    panel.innerHTML = `
+    <div class="fence-form">
+      <label>Fence Name</label>
+      <input id="newCrowdName" placeholder="Enter name">
+
+      <label>Direction</label>
+      <select id="newCrowdDir">
+        <option value="AtoB">A → B</option>
+        <option value="BtoA">B → A</option>
+      </select>
+
+      <button id="saveCrowdFenceBtn">儲存</button>
+    </div>
+  `;
+    document.getElementById("saveCrowdFenceBtn").onclick = () => saveCrowdFence(points);
+  }
+
 
   // === 更新時間排程到後端 ===
   async function updateSchedule(type) {
@@ -296,7 +335,7 @@ window.onload = async function () {
   }
 
 
-  async function saveFence(points) {
+  async function saveOnewayFence(points) {
     // 取得實際影像顯示尺寸
     const videoWidth = imgStream.clientWidth;
     const videoHeight = imgStream.clientHeight;
@@ -333,7 +372,7 @@ window.onload = async function () {
       const panel = document.getElementById(`${currentType}_panel`);
       const r = await fetch(`/api/fence/${currentType}?camera_id=${cameraId}`);
       renderFenceList(await r.json(), currentType, panel);
-      
+
       await fetch(`/api/reload_gates/${cameraId}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -342,6 +381,40 @@ window.onload = async function () {
       console.log("新圍籬已儲存並清除畫布");
     }
 
+  }
+
+  async function saveCrowdFence(points) {
+    const videoWidth = imgStream.clientWidth;
+    const videoHeight = imgStream.clientHeight;
+
+    const normA = [points[0][0] / videoWidth, points[0][1] / videoHeight];
+    const normB = [points[1][0] / videoWidth, points[1][1] / videoHeight];
+
+    const payload = {
+      camera_id: cameraId,
+      name: document.getElementById("newCrowdName").value,
+      direction: document.getElementById("newCrowdDir").value,
+      point_a: normA,
+      point_b: normB
+    };
+
+    const res = await fetch(`/api/fence/crowd/add`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    const result = await res.json();
+    if (result.status === "ok") {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      points = [];
+      drawing = false;
+      const panel = document.getElementById("crowd_panel");
+      const r = await fetch(`/api/fence/crowd?camera_id=${cameraId}`);
+      renderFenceList(await r.json(), "crowd", panel);
+      await fetch(`/api/reload_gates/${cameraId}`, { method: "POST" });
+      console.log("📊 People Counting Fence 已儲存");
+    }
   }
 
   // flatpickr("input[type='time']", {

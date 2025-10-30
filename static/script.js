@@ -26,14 +26,18 @@ async function loadCameras() {
 
 // 🔹 建立攝影機卡片
 function addCameraCard(cam) {
-  console.log(cam); // ← debug：你會看到 camera_id / camera_name / camera_url
+  console.log(cam); // debug：camera_id / camera_name / camera_url
 
   const card = document.createElement("div");
   card.className = "camera-card";
   card.innerHTML = `
     <div class="camera-info">
       <h3>${cam.camera_name}</h3>
-      <video src="${cam.camera_url}" controls muted preload="metadata"></video>
+      <img
+        src="/video_feed/${cam.camera_id}"
+        alt="Live stream for ${cam.camera_name}"
+        style="width:100%; height:auto; object-fit:cover; border-radius:8px;"
+      />
     </div>
     <div class="camera-actions">
       <a href="/camera.html?id=${cam.camera_id}" class="view-btn">View</a>
@@ -41,6 +45,7 @@ function addCameraCard(cam) {
   `;
   cameraList.appendChild(card);
 }
+
 
 // 🔹 頁面初始化
 document.addEventListener("DOMContentLoaded", loadCameras);

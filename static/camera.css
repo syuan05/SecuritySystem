@@ -81,6 +81,15 @@ header h1 {
 .hidden {
   display: none;
 }
+.fence-panel.active {
+  max-height: 500px; /* 根據實際內容可調大一點 */
+  opacity: 1;
+}
+
+.fence-panel.hidden {
+  max-height: 0;
+  opacity: 0;
+}
 .fence-panel input,
 .fence-panel select,
 .fence-panel button {
@@ -100,6 +109,31 @@ header h1 {
 }
 .fence-panel button:hover {
   background: #2980b9;
+}
+
+.fence-form {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+
+.fence-form input, .fence-form select {
+  padding: 6px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.fence-form button {
+  background: #007bff;
+  color: #fff;
+  border: none;
+  padding: 6px;
+  border-radius: 6px;
+  cursor: pointer;
 }
 
 /* ===== Video ===== */
