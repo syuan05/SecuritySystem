@@ -28,6 +28,10 @@ def camera_page():
 def history_page():
     return render_template('history.html')
 
+@app.route("/analytics.html")
+def analytics_page():
+    return render_template("analytics.html")
+
 @app.route("/video_feed/<int:camera_id>")
 def video_feed(camera_id):
     def generate():
@@ -374,6 +378,92 @@ def get_events():
     cur.close()
     conn.close()
 
+    return jsonify(data)
+# 🔹 近24小時
+@app.route("/api/people/hourly")
+def people_hourly():
+    camera_id = request.args.get("camera_id", type=int)
+    conn = get_db_connection()
+    cur = conn.cursor(dictionary=True)
+    if camera_id:
+        cur.execute("""
+            SELECT HOUR(timestamp) AS hour, COUNT(*) AS count
+            FROM people_flow
+            WHERE timestamp >= NOW() - INTERVAL 24 HOUR
+              AND camera_id = %s
+            GROUP BY HOUR(timestamp)
+            ORDER BY hour;
+        """, (camera_id,))
+    else:
+        cur.execute("""
+            SELECT HOUR(timestamp) AS hour, COUNT(*) AS count
+            FROM people_flow
+            WHERE timestamp >= NOW() - INTERVAL 24 HOUR
+            GROUP BY HOUR(timestamp)
+            ORDER BY hour;
+        """)
+    data = cur.fetchall()
+    cur.close(); conn.close()
+    return jsonify(data)
+
+
+# 🔹 近一週
+@app.route("/api/people/weekly")
+def people_weekly():
+    camera_id = request.args.get("camera_id", type=int)
+    conn = get_db_connection()
+    cur = conn.cursor(dictionary=True)
+    if camera_id:
+        cur.execute("""
+            SELECT DATE(timestamp) AS date, COUNT(*) AS count
+            FROM people_flow
+            WHERE timestamp >= CURDATE() - INTERVAL 7 DAY
+              AND camera_id = %s
+            GROUP BY DATE(timestamp)
+            ORDER BY date;
+        """, (camera_id,))
+    else:
+        cur.execute("""
+            SELECT DATE(timestamp) AS date, COUNT(*) AS count
+            FROM people_flow
+            WHERE timestamp >= CURDATE() - INTERVAL 7 DAY
+            GROUP BY DATE(timestamp)
+            ORDER BY date;
+        """)
+    data = cur.fetchall()
+    cur.close(); conn.close()
+    return jsonify(data)
+
+
+# 🔹 自訂時段
+@app.route("/api/people/custom")
+def people_custom():
+    start = request.args.get("start", "09:00")
+    end = request.args.get("end", "18:00")
+    camera_id = request.args.get("camera_id", type=int)
+    conn = get_db_connection()
+    cur = conn.cursor(dictionary=True)
+    if camera_id:
+        cur.execute(f"""
+            SELECT DATE(timestamp) AS date, COUNT(*) AS count
+            FROM people_flow
+            WHERE HOUR(timestamp) BETWEEN HOUR(%s) AND HOUR(%s)
+              AND timestamp >= CURDATE() - INTERVAL 7 DAY
+              AND camera_id = %s
+            GROUP BY DATE(timestamp)
+            ORDER BY date;
+        """, (start, end, camera_id))
+    else:
+        cur.execute(f"""
+            SELECT DATE(timestamp) AS date, COUNT(*) AS count
+            FROM people_flow
+            WHERE HOUR(timestamp) BETWEEN HOUR(%s) AND HOUR(%s)
+              AND timestamp >= CURDATE() - INTERVAL 7 DAY
+            GROUP BY DATE(timestamp)
+            ORDER BY date;
+        """, (start, end))
+    data = cur.fetchall()
+    cur.close(); conn.close()
     return jsonify(data)
 
 

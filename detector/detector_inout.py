@@ -257,36 +257,44 @@ class InOutDetector(DetectorBase):
                                     color = (0, 255, 0)
                                     text = f"{cross_dir} ({state})"
                                 else:
+                                    # --- 反向通行，屬於違規 ---
                                     state = "inout"
                                     color = (0, 0, 255)
                                     text = f"{cross_dir} (Invasion)"
-                                    now = datetime.datetime.now().time()
+
+                                    # === 時段判斷 ===
+                                    now_dt = datetime.datetime.now()        # ✅ 完整 datetime，供閃爍用
+                                    now_t  = now_dt.time()                  # ✅ 取出 time，供時段比較
                                     fmt = "%H:%M:%S"
 
-                                    start_t = datetime.datetime.strptime(gate["start"], fmt).time()
-                                    end_t   = datetime.datetime.strptime(gate["end"], fmt).time()
+                                    start_t = datetime.datetime.strptime(g["start"], fmt).time()
+                                    end_t   = datetime.datetime.strptime(g["end"], fmt).time()
 
-                                    # 支援跨日區間
+                                    # 支援跨日區間（例如 22:00 ~ 06:00）
                                     if start_t <= end_t:
-                                        in_active = start_t <= now <= end_t
+                                        in_active = start_t <= now_t <= end_t
                                     else:
-                                        in_active = now >= start_t or now <= end_t
+                                        in_active = now_t >= start_t or now_t <= end_t
 
                                     level = "heavy" if in_active else "light"
-                                    # 寫入資料庫
+
+                                    # === 寫入資料庫 ===
                                     conn = get_db_connection()
                                     cur = conn.cursor()
                                     cur.execute("""
                                         INSERT INTO events (camera_id, gate_id, event_type, alert_level, timestamp)
                                         VALUES (%s, %s, %s, %s, NOW());
                                     """, (self.camera_id, g["id"], "inout", level))
-                                    cv2.putText(frame, text, (x1, y2 + 20),
-                                        cv2.FONT_HERSHEY_SIMPLEX, 0.7, color, 2)
-                                    rt.flash_color = color
-                                    rt.flash_until = now + self.FLASH_SEC
                                     conn.commit()
                                     cur.close()
                                     conn.close()
+
+                                    # === 顯示警示效果 ===
+                                    cv2.putText(frame, text, (x1, y2 + 20),
+                                                cv2.FONT_HERSHEY_SIMPLEX, 0.7, color, 2)
+
+                                    rt.flash_color = color
+                                    rt.flash_until = now_dt + datetime.timedelta(seconds=self.FLASH_SEC)  # ✅ datetime 可加秒數
 
                                 # --- 顯示在畫面上 ---
                                 
