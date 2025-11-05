@@ -1,21 +1,15 @@
 # app.py
 from flask import Flask, render_template, jsonify, request, Response
-import mysql.connector
+import os, cv2, json, time, threading
 from dotenv import load_dotenv
-import os
-import json
-import cv2
-from detector.video_manager import VideoManager
-import threading
 from db_utils import get_db_connection
-import time
+from detector.video_manager import VideoManager
 
-manager = VideoManager()
 load_dotenv()
 app = Flask(__name__)
+manager = VideoManager()   # 只建立實例，不載入模型、不開攝影機
 
 
-# ====== 頁面 ======
 @app.route('/')
 def index():
     return render_template('index.html')
@@ -32,54 +26,45 @@ def history_page():
 def analytics_page():
     return render_template("analytics.html")
 
+
 @app.route("/video_feed/<int:camera_id>")
 def video_feed(camera_id):
     def generate():
         while True:
-            # ✅ 改這裡：遍歷 .values()
-            for worker in manager.workers.values():
-                if worker.camera_id == camera_id:
-                    if hasattr(worker, "last_frame") and worker.last_frame is not None:
-                        _, buffer = cv2.imencode(".jpg", worker.last_frame)
-                        frame = buffer.tobytes()
-                        yield (b"--frame\r\n"
-                               b"Content-Type: image/jpeg\r\n\r\n" + frame + b"\r\n")
-                    break
+            frame = manager.get_last_frame(camera_id)
+            if frame is not None:
+                _, buffer = cv2.imencode(".jpg", frame)
+                yield (b"--frame\r\n"
+                       b"Content-Type: image/jpeg\r\n\r\n" + buffer.tobytes() + b"\r\n")
             time.sleep(0.03)
     return Response(generate(), mimetype="multipart/x-mixed-replace; boundary=frame")
 
-
-
-# ====== API ======
 @app.route('/api/cameras')
 def get_cameras():
     conn = get_db_connection()
     cur = conn.cursor(dictionary=True)
     cur.execute("SELECT camera_id, camera_name, camera_url FROM cameras ORDER BY camera_id;")
     data = cur.fetchall()
-    cur.close()
-    conn.close()
+    cur.close(); conn.close()
     return jsonify(data)
+
 
 @app.route('/api/camera/<int:camera_id>')
 def get_camera(camera_id):
     conn = get_db_connection()
     cur = conn.cursor(dictionary=True)
 
-    # 讀取 camera 基本資料
     cur.execute("""
         SELECT camera_id, camera_name, camera_url,
                falling_detection_mode, climbing_detection_mode
-        FROM cameras
-        WHERE camera_id = %s;
+        FROM cameras WHERE camera_id = %s;
     """, (camera_id,))
     cam = cur.fetchone()
-
     if not cam:
         cur.close(); conn.close()
         return jsonify({"error": "Camera not found"}), 404
 
-    # 讀取該攝影機的 schedule
+    # 抓 schedule
     cur.execute("""
         SELECT function_type, start_time, end_time
         FROM func_schedules
@@ -88,32 +73,21 @@ def get_camera(camera_id):
           AND is_active = 1;
     """, (camera_id,))
     schedules = cur.fetchall()
-
     cur.close(); conn.close()
 
     def fmt_time(t):
-        """安全格式化 MySQL TIME 欄位（timedelta → HH:MM）"""
-        if t is None:
-            return "--:--"
-        if isinstance(t, str):
-            return t[:5]
+        if not t: return "--:--"
+        if isinstance(t, str): return t[:5]
         if hasattr(t, "seconds"):
-            total_seconds = int(t.total_seconds())
-            h = (total_seconds // 3600) % 24
-            m = (total_seconds % 3600) // 60
+            h, m = divmod(int(t.total_seconds()) // 60, 60)
             return f"{h:02d}:{m:02d}"
         return str(t)
 
     cam["schedules"] = {
-        s["function_type"]: {
-            "start": fmt_time(s["start_time"]),
-            "end": fmt_time(s["end_time"])
-        } for s in schedules
+        s["function_type"]: {"start": fmt_time(s["start_time"]), "end": fmt_time(s["end_time"])}
+        for s in schedules
     }
-
     return jsonify(cam)
-
-
 
 @app.route('/api/fence/<string:type>')
 def get_fence(type):
@@ -354,7 +328,6 @@ def get_events():
     """
     params = []
 
-    # 動態加條件
     if event_type:
         query += " AND e.event_type = %s"
         params.append(event_type)
@@ -379,7 +352,7 @@ def get_events():
     conn.close()
 
     return jsonify(data)
-# 🔹 近24小時
+
 @app.route("/api/people/hourly")
 def people_hourly():
     camera_id = request.args.get("camera_id", type=int)
@@ -468,11 +441,15 @@ def people_custom():
 
 
 def start_detection_system():
-    manager.load_all_cameras()   # 從資料庫撈出所有攝影機
-    manager.start_all()          # 為每支攝影機啟動 YOLO 偵測 worker
+    print("🔄 Loading cameras and starting detection system...")
+    try:
+        manager.load_all_cameras()
+        print("✅ Detection system started successfully.")
+    except Exception as e:
+        print(f"❌ Detection system startup failed: {e}")
 
 
 if __name__ == "__main__":
-    if os.environ.get("WERKZEUG_RUN_MAIN") == "true":  # 只在重載後主進程啟動時執行
+    if os.environ.get("WERKZEUG_RUN_MAIN") == "true":
         threading.Thread(target=start_detection_system, daemon=True).start()
     app.run(host="0.0.0.0", port=5000, debug=True)

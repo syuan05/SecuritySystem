@@ -3,9 +3,8 @@
 from abc import ABC, abstractmethod
 
 class DetectorBase(ABC):
-    def __init__(self, camera_id, camera_url):
+    def __init__(self, camera_id):
         self.camera_id = camera_id
-        self.camera_url = camera_url
         self.running = True
 
     @abstractmethod
