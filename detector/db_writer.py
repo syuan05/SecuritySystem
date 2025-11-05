@@ -2,6 +2,8 @@
 import threading
 import queue
 import time
+import datetime
+import pytz
 from db_utils import get_db_connection
 
 class DBWriter:
@@ -27,20 +29,29 @@ class DBWriter:
                 try:
                     cur.execute("""
                         INSERT INTO events (camera_id, gate_id, event_type, alert_level, timestamp)
-                        VALUES (%s, %s, %s, %s, NOW());
-                    """, (item["camera_id"], item["gate_id"], item["event_type"], item["alert_level"]))
+                        VALUES (%s, %s, %s, %s, %s);
+                    """, (
+                        item["camera_id"],
+                        item["gate_id"],
+                        item["event_type"],
+                        item["alert_level"],
+                        item["timestamp"]
+                    ))
                 except Exception as e:
                     print("[DBWriter] Error:", e)
             conn.commit()
 
-
     def add_event(self, camera_id, gate_id, event_type, alert_level):
         """放入佇列（供偵測模組呼叫）"""
+        tz = pytz.timezone('Asia/Taipei')
+        local_time = datetime.datetime.now(tz).strftime("%Y-%m-%d %H:%M:%S")
+
         self.queue.put({
             "camera_id": camera_id,
             "gate_id": gate_id,
             "event_type": event_type,
-            "alert_level": alert_level
+            "alert_level": alert_level,
+            "timestamp": local_time
         })
 
 # 🔹 全域唯一 DBWriter 實例
