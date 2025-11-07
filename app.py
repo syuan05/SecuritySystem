@@ -3,11 +3,12 @@ from flask import Flask, render_template, jsonify, request, Response
 import os, cv2, json, time, threading
 from dotenv import load_dotenv
 from db_utils import get_db_connection
-from detector.video_manager import VideoManager
+from detector.video_manager import manager_instance as manager
+
 
 load_dotenv()
 app = Flask(__name__)
-manager = VideoManager()   # 只建立實例，不載入模型、不開攝影機
+# manager = VideoManager()   # 只建立實例，不載入模型、不開攝影機
 
 
 @app.route('/')
@@ -36,7 +37,7 @@ def video_feed(camera_id):
                 _, buffer = cv2.imencode(".jpg", frame)
                 yield (b"--frame\r\n"
                        b"Content-Type: image/jpeg\r\n\r\n" + buffer.tobytes() + b"\r\n")
-            time.sleep(0.03)
+            time.sleep(0.05)
     return Response(generate(), mimetype="multipart/x-mixed-replace; boundary=frame")
 
 @app.route('/api/cameras')
@@ -98,7 +99,7 @@ def get_fence(type):
     config = {
         "inout": {"table": "gates", "mode": "in_out_control_mode", "func": "in_out_control"},
         "intrusion": {"table": "gates", "mode": "intrusion_mode", "func": "intrusion"},
-        "crowd": {"table": "gates", "mode": "person_count_mode", "func": "crowd_count"},
+        "crowd": {"table": "gates", "mode": "person_count_mode", "func": "person_count"},
         "people": {"table": "gates", "mode": "people_detect_mode", "func": "people_detect"}
     }
 
@@ -154,19 +155,25 @@ def fmt_time(t):
     return str(t)
 
 @app.route('/api/fence/<string:type>/add', methods=['POST'])
+@app.route('/api/fence/<string:type>/add', methods=['POST'])
 def add_fence(type):
     data = request.json
+    print("📦 Received JSON for fence:", json.dumps(data, indent=2, ensure_ascii=False))
     conn = get_db_connection()
     cur = conn.cursor()
 
     if type == "inout":
         table, func_type, mode_col = "gates", "in_out_control", "in_out_control_mode"
+        need_schedule = True
     elif type == "intrusion":
         table, func_type, mode_col = "gates", "intrusion", "intrusion_mode"
+        need_schedule = True
     elif type == "crowd":
-        table, func_type, mode_col = "gates", "crowd_count", "person_count_mode"
+        table, func_type, mode_col = "gates", "person_count", "person_count_mode"
+        need_schedule = False
     elif type == "people":
         table, func_type, mode_col = "gates", "people_detect", "people_detect_mode"
+        need_schedule = False
     else:
         return jsonify({"error": "invalid type"}), 400
 
@@ -179,22 +186,45 @@ def add_fence(type):
         """, (
             data["camera_id"],
             data["name"],
-            json.dumps({"A": data["point_a"], "B": data["point_b"]}), 
-            data["direction"]
+            json.dumps({"A": data["point_a"], "B": data["point_b"]}),
+            data.get("direction", "N/A")
         ))
         obj_id = cur.lastrowid
 
-        # === Step 2. 新增對應的 schedule ===
-        cur.execute("""
-            INSERT INTO func_schedules (camera_id, gate_id, function_type, start_time, end_time, is_active)
-            VALUES (%s, %s, %s, %s, %s, 1);
-        """, (data["camera_id"], obj_id, func_type, data["start_time"], data["end_time"]))
+        # === Step 2. 視情況新增對應的 schedule ===
+        if need_schedule:
+            cur.execute("""
+                INSERT INTO func_schedules (camera_id, gate_id, function_type, start_time, end_time, is_active)
+                VALUES (%s, %s, %s, %s, %s, 1);
+            """, (
+                data["camera_id"],
+                obj_id,
+                func_type,
+                data["start_time"],
+                data["end_time"]
+            ))
+        else:
+            # 不需要時間的功能就只記錄啟用狀態
+            cur.execute("""
+                INSERT INTO func_schedules (camera_id, gate_id, function_type, is_active)
+                VALUES (%s, %s, %s, 1);
+            """, (
+                data["camera_id"],
+                obj_id,
+                func_type
+            ))
 
         conn.commit()
-        return jsonify({"status": "ok", "id": obj_id})
+        return jsonify({
+            "status": "ok",
+            "id": obj_id,
+            "type": type,
+            "received": data
+        })
 
     except Exception as e:
         conn.rollback()
+        print("❌ Add fence error:", e)
         return jsonify({"status": "error", "message": str(e)}), 500
 
     finally:
@@ -293,12 +323,14 @@ def update_schedule(mode):
     
 @app.route("/api/reload_gates/<int:camera_id>", methods=["POST"])
 def reload_gates(camera_id):
-    from detector.video_manager import manager_instance
-    worker = manager.workers.get(camera_id)
-    if worker:
-        worker.reload_gates()
-        return jsonify({"status": "ok"})
-    return jsonify({"status": "error", "message": "worker not found"}), 404
+    print(f"🔄 Reloading gates for camera {camera_id} ...")
+    print(id(manager))
+    try:
+        manager.reload_gates(camera_id)   # 🔁 同一個 manager 物件
+        return jsonify({"status": "ok", "camera_id": camera_id})
+    except Exception as e:
+        print(f"❌ reload_gates() failed for camera {camera_id}: {e}")
+        return jsonify({"status": "error", "message": str(e)}), 500
 
 @app.route('/api/events')
 def get_events():
@@ -439,11 +471,10 @@ def people_custom():
     cur.close(); conn.close()
     return jsonify(data)
 
-
 def start_detection_system():
     print("🔄 Loading cameras and starting detection system...")
     try:
-        manager.load_all_cameras()
+        manager.load_all_cameras()        
         print("✅ Detection system started successfully.")
     except Exception as e:
         print(f"❌ Detection system startup failed: {e}")

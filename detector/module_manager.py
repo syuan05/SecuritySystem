@@ -1,10 +1,11 @@
 # detector/module_manager.py
 from detector.drawer import Drawer
 from detector.modules.inout_module import InOutModule
-# from detector.modules.people_flow_module import PeopleFlowModule
+from detector.modules.person_count import PersonCountModule
 # from detector.modules.fall_module import FallModule
 # from detector.modules.climb_module import ClimbModule
 from db_utils import get_db_connection
+import numpy as np
 
 class ModuleManager:
     def __init__(self, camera_id, camera_url):
@@ -26,28 +27,52 @@ class ModuleManager:
         """, (self.camera_id,))
         funcs = [r["function_type"] for r in cur.fetchall()]
         cur.close(); conn.close()
+        # ✅ 初始化統計數值
+        inout_count = 0
+        person_count = 0
+        inout_names = []
+        person_names = []
 
+        # === 根據功能類型載入模組 ===
         if "in_out_control" in funcs:
-            self.modules.append(InOutModule(self.camera_id))
-        # if "crowd_count" in funcs:
-        #     self.modules.append(PeopleFlowModule(self.camera_id))
+            try:
+                inout_mod = InOutModule(self.camera_id)
+                self.modules.append(inout_mod)
+                inout_count = len(inout_mod.gates)
+                inout_names = [g["name"] for g in inout_mod.gates]
+            except Exception as e:
+                print(f"[WARN] Camera {self.camera_id}: failed to load InOutModule ({e})")
 
+        if "person_count" in funcs:
+            try:
+                pf_mod = PersonCountModule(self.camera_id)
+                self.modules.append(pf_mod)
+                person_count = len(pf_mod.gates)
+                person_names = [g["name"] for g in pf_mod.gates]
+            except Exception as e:
+                print(f"[WARN] Camera {self.camera_id}: failed to load PersonCountModule ({e})")
+
+        # === ✅ 安全輸出 log ===
+        print(f"[INIT] Camera {self.camera_id}: "
+            f"{inout_count} InOut gates {inout_names}, "
+            f"{person_count} PersonCount gates {person_names}.")
     # def _load_always_on_modules(self):
         # self.modules.append(FallModule(self.camera_id))
         # self.modules.append(ClimbModule(self.camera_id))
-    def process(self, frame):
+    def process(self, frame, camera_id=None):
+        cam_id = camera_id or self.camera_id
         results = []
-        gates = []  # 保證變數一定存在
+        gates = []
+        drawn = frame
 
         for m in self.modules:
-            # 先收集所有模組的 gate 設定
             if hasattr(m, "gates"):
-                gates.extend(m.gates)
-
-            # 執行分析
-            mod_results = m.analyze(frame)
-            if mod_results:
+                gates.extend([g for g in m.gates if g.get("camera_id") == self.camera_id])
+            mod_results = m.analyze(drawn)
+            if isinstance(mod_results, list):
                 results.extend(mod_results)
-
-        # ✅ 即使沒有模組也不會出錯
-        return self.drawer.draw(frame, self.camera_id, results, gates)
+            # 如果模組直接回傳畫面（極少數情況），只在沒有結果時使用
+            elif isinstance(mod_results, (np.ndarray)) and len(results) == 0:
+                drawn = mod_results
+        gates = [g for g in gates if g.get("camera_id") == self.camera_id]
+        return self.drawer.draw(drawn, self.camera_id, results, gates)

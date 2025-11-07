@@ -34,16 +34,18 @@ class VideoManager:
             video_worker = VideoWorker(cid, url)
             module_manager = ModuleManager(cid, url)
 
-            # ✅ 綁定 callback，讓 YOLO 偵測在同一條線程內進行
-            video_worker.callback = module_manager.process
+            # ✅ 用 module_manager=module_manager 捕捉當前的物件
+            def callback(frame, camera_id=cid, module_manager=module_manager):
+                drawn_frame = module_manager.process(frame, camera_id)
+                return drawn_frame
 
-            # ✅ 啟動攝影機串流（內部會維持原速）
+
+            video_worker.callback = callback
             video_worker.start()
 
             self.workers[cid] = {
                 "video": video_worker,
                 "modules": module_manager,
-                "last_frame": None,
                 "running": True
             }
 

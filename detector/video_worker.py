@@ -1,7 +1,6 @@
 import cv2
 import threading
 import time
-import os
 
 class VideoWorker:
     def __init__(self, camera_id, camera_url):
@@ -10,7 +9,7 @@ class VideoWorker:
         self.frame = None
         self.running = True
         self.lock = threading.Lock()
-        self.callback = None  # 外部指定 callback 函式（ModuleManager用）
+        self.callback = None  # 模組分析回呼（會回傳已繪製的 frame）
 
     # 啟動讀取執行緒
     def start(self):
@@ -24,21 +23,20 @@ class VideoWorker:
             print(f"[ERROR] Camera {self.camera_id} failed to open stream: {self.camera_url}")
             return
 
-        # 嘗試抓取 FPS，沒有就預設30
         fps = cap.get(cv2.CAP_PROP_FPS)
         if fps <= 0 or fps > 60:
             fps = 30.0
         frame_interval = 1.0 / fps
-
         print(f"[INFO] Camera {self.camera_id} stream opened at {fps:.1f} FPS")
+
+        target_size = (1280, 720)  # ✅ 統一輸出大小
 
         while self.running:
             start_time = time.time()
             ok, frame = cap.read()
-
-            # 🔁 若影片播放結束，自動重播
+            
+            # 🔁 若影片結束，自動重播
             if not ok or frame is None:
-                # 嘗試重設影片到開頭
                 cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
                 ok, frame = cap.read()
                 if not ok or frame is None:
@@ -46,18 +44,26 @@ class VideoWorker:
                     time.sleep(0.1)
                     continue
 
-            # 更新最新畫面緩衝
-            with self.lock:
-                self.frame = frame.copy()
+            # ✅ 統一大小
+            frame = cv2.resize(frame, target_size)
 
-            # 若有註冊 callback（例如 YOLO 模組）
+            processed_frame = frame
+
             if self.callback:
                 try:
-                    self.callback(frame)
+                    result = self.callback(frame)
+                    if result is not None:
+                        with self.lock:
+                            self.frame = result.copy()
+                        continue
                 except Exception as e:
+                    import traceback
                     print(f"[ERROR] Camera {self.camera_id} callback failed: {e}")
+                    traceback.print_exc()
 
-            # 控制原始播放速率
+            with self.lock:
+                self.frame = processed_frame.copy()
+
             elapsed = time.time() - start_time
             delay = frame_interval - elapsed
             if delay > 0:
@@ -66,11 +72,11 @@ class VideoWorker:
         cap.release()
         print(f"[INFO] Camera {self.camera_id} stopped.")
 
-    # 取得最新畫面
+
+    # 取得最新畫面（Flask 串流用）
     def get_frame(self):
         with self.lock:
             return None if self.frame is None else self.frame.copy()
 
-    # 停止執行
     def stop(self):
         self.running = False
