@@ -17,15 +17,35 @@ class BaseWriter:
     def _worker(self):
         conn = get_db_connection()
         cur = conn.cursor()
+        self.batch = []  # 🟢 批次暫存區
+
         while self.running:
             try:
                 item = self.queue.get(timeout=1)
-                self._write(cur, item)
-                conn.commit()
+                self.batch.append(item)
+                print(f"[DB] {self.__class__.__name__} got item ({len(self.batch)} pending)")
+
+                # 當累積 10 筆（或更多）再一起寫入
+                if len(self.batch) >= 10:
+                    t0 = time.time()
+                    for it in self.batch:
+                        self._write(cur, it)
+                    conn.commit()
+                    print(f"[DB] {self.__class__.__name__} batch commit {len(self.batch)} OK ({time.time()-t0:.3f}s)")
+                    self.batch.clear()
+
             except queue.Empty:
+                # 若沒資料但有尚未 commit 的批次，也可視情況寫入
+                if self.batch:
+                    for it in self.batch:
+                        self._write(cur, it)
+                    conn.commit()
+                    print(f"[DB] {self.__class__.__name__} flush remaining {len(self.batch)} OK (idle)")
+                    self.batch.clear()
                 continue
             except Exception as e:
                 print(f"[{self.__class__.__name__}] Error:", e)
+
         cur.close()
         conn.close()
 

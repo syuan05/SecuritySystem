@@ -19,6 +19,7 @@ DB_CONFIG = {
 def get_db_connection():
     """建立資料庫連線並自動設為台灣時區"""
     conn = mysql.connector.connect(**DB_CONFIG)
+    conn.autocommit = True
     cur = conn.cursor()
     cur.execute("SET time_zone = '+08:00';")  # ✅ 強制使用台灣時區
     cur.close()

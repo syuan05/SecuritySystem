@@ -34,7 +34,10 @@ class VideoWorker:
         while self.running:
             start_time = time.time()
             ok, frame = cap.read()
-            
+            if not ok:
+                print(f"[WARN] Camera {self.camera_id}: failed to read frame")
+            else:
+                print(f"[PERF] Camera {self.camera_id}: frame read took {time.time()-start_time:.3f}s")
             # 🔁 若影片結束，自動重播
             if not ok or frame is None:
                 cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
@@ -50,6 +53,11 @@ class VideoWorker:
             processed_frame = frame
 
             if self.callback:
+                cb_start = time.time()
+                print(f"[LOOP] Camera {self.camera_id}: starting callback")
+                result = self.callback(frame)
+                print(f"[LOOP] Camera {self.camera_id}: callback returned")
+                print(f"[PERF] Camera {self.camera_id}: callback took {time.time()-cb_start:.3f}s")
                 try:
                     result = self.callback(frame)
                     if result is not None:

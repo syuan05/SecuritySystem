@@ -125,7 +125,10 @@ class InOutModule(DetectorBase):
         MIN_NEAR = 30
         last_evt = {}
         with pose_model_lock:  # 🔒 保證單一推論執行
-            results = pose_model.track(frame, persist=True, conf=self.conf, imgsz=960, verbose=False)
+            import time
+            t0 = time.time()
+            results = self.model.track(frame, persist=True, conf=self.conf, imgsz=960, verbose=False)
+            print(f"[PERF] YOLO track took {time.time()-t0:.3f}s on camera {self.camera_id}")
         events = []
         draw_results = []  # 給 Drawer 畫的所有人資訊
 
