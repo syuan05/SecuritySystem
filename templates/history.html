@@ -2,59 +2,78 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Event History</title>
+  <title>Event History - Security System</title>
+
+  <!-- 共用樣式 -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='global.css') }}">
+  <!-- 此頁專用 -->
   <link rel="stylesheet" href="{{ url_for('static', filename='history.css') }}">
 </head>
+
 <body>
+  <!-- ===== Header 導覽列 ===== -->
   <header>
-    <h1>Event History</h1>
-    <a href="/" class="back-btn">← Back</a>
+    <div class="nav-left">
+      <h1>Security System</h1>
+    </div>
+    <div class="nav-right">
+      <a href="{{ url_for('index') }}" class="nav-link">Camera Overview</a>
+      <a href="{{ url_for('history') }}" class="nav-link active">History</a>
+      <a href="{{ url_for('analytics') }}" class="nav-link">Analytics</a>
+    </div>
   </header>
 
-  <!-- Filter Bar -->
-  <section class="filter-bar">
-    <div class="filter-group">
-      <label>Start Date:</label>
-      <input type="date" id="startDate">
-      <label>End Date:</label>
-      <input type="date" id="endDate">
-    </div>
-    <div class="filter-group">
-      <label>Type:</label>
-      <select id="typeSelect">
-        <option value="">All</option>
-        <option value="inout_cross">In/Out Crossing</option>
-        <option value="intrusion">Intrusion</option>
-        <option value="crowd">Crowd</option>
-      </select>
-    </div>
-    <div class="filter-group">
-      <label>Level:</label>
-      <select id="levelSelect">
-        <option value="">All</option>
-        <option value="heavy">Heavy</option>
-        <option value="medium">Medium</option>
-        <option value="light">Light</option>
-      </select>
-    </div>
-    <button id="filterBtn">Filter</button>
-  </section>
+  <!-- ===== 主內容 ===== -->
+  <main class="fade-in">
+    <h2 style="margin-bottom: 20px;">Event History</h2>
 
-  <!-- Table -->
-  <main>
-    <table id="eventTable">
-      <thead>
-        <tr>
-          <th>ID</th>
-          <th>Camera</th>
-          <th>Gate</th>
-          <th>Event Type</th>
-          <th>Alert Level</th>
-          <th>Timestamp</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
+    <!-- Filter Bar -->
+    <section class="filter-bar card">
+      <div class="filter-group">
+        <label>Start Date:</label>
+        <input type="date" id="startDate">
+      </div>
+      <div class="filter-group">
+        <label>End Date:</label>
+        <input type="date" id="endDate">
+      </div>
+      <div class="filter-group">
+        <label>Type:</label>
+        <select id="typeSelect">
+          <option value="">All</option>
+          <option value="inout_cross">In/Out Crossing</option>
+          <option value="intrusion">Intrusion</option>
+          <option value="crowd">Crowd</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>Level:</label>
+        <select id="levelSelect">
+          <option value="">All</option>
+          <option value="heavy">Heavy</option>
+          <option value="medium">Medium</option>
+          <option value="light">Light</option>
+        </select>
+      </div>
+      <button id="filterBtn" class="btn">Filter</button>
+    </section>
+
+    <!-- Table -->
+    <section class="fade-in">
+      <table id="eventTable">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Camera</th>
+            <th>Gate</th>
+            <th>Event Type</th>
+            <th>Alert Level</th>
+            <th>Timestamp</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </section>
   </main>
 
   <script src="{{ url_for('static', filename='history.js') }}"></script>

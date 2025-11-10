@@ -2,22 +2,35 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Security System</title>
-  <link rel="stylesheet" href="static/styles.css">
+  <title>Security System - Camera Overview</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='global.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+
 <body>
+  <!-- ===== Header 導覽列 ===== -->
   <header>
     <div class="nav-left">
       <h1>Security System</h1>
     </div>
     <div class="nav-right">
-      <a href="index.html" class="nav-link active">Camera Overview</a>
-      <a href="history.html" class="nav-link">History</a>
-      <a href="analytics.html" class="nav-link">Analytics</a>
+      <a href="{{ url_for('index') }}" class="nav-link active">Camera Overview</a>
+      <a href="{{ url_for('history') }}" class="nav-link">History</a>
+      <a href="{{ url_for('analytics') }}" class="nav-link">Analytics</a>
     </div>
   </header>
 
-  <main class="camera-list" id="cameraList"></main>
-  
-  <script type="module" src="static/script.js"></script>
+  <!-- ===== 主內容區 ===== -->
+  <main>
+    <h2 style="margin-bottom: 20px;">Camera List</h2>
+
+    <!-- 攝影機清單容器 -->
+    <section class="camera-list fade-in" id="cameraList">
+      <!-- JS 動態生成攝影機卡片 -->
+    </section>
+  </main>
+
+  <!-- ===== Script ===== -->
+  <script type="module" src="{{ url_for('static', filename='script.js') }}"></script>
 </body>
 </html>

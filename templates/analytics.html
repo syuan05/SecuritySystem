@@ -1,58 +1,73 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-    <meta charset="UTF-8">
-    <title>Analytics - Security System</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link rel="stylesheet" href="{{ url_for('static', filename='analytics.css') }}">
+  <meta charset="UTF-8">
+  <title>Analytics - Security System</title>
+
+  <!-- 全域樣式 -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='global.css') }}">
+  <!-- 本頁樣式 -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='analytics.css') }}">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 
 <body>
-    <header>
-        <div class="nav-left">
-            <h1>Security System</h1>
+  <!-- ===== Header ===== -->
+  <header>
+    <div class="nav-left">
+      <h1>Security System</h1>
+    </div>
+    <div class="nav-right">
+      <a href="{{ url_for('index') }}" class="nav-link">Camera Overview</a>
+      <a href="{{ url_for('history') }}" class="nav-link">History</a>
+      <a href="{{ url_for('analytics') }}" class="nav-link active">Analytics</a>
+    </div>
+  </header>
+
+  <!-- ===== Main Content ===== -->
+  <main class="analytics-container fade-in">
+    <h2 style="margin-bottom: 20px;">People Flow Analytics</h2>
+
+    <!-- Camera Selector -->
+    <section class="camera-selector card">
+      <label for="cameraSelect">Select Camera:</label>
+      <select id="cameraSelect">
+        <option value="">All Cameras</option>
+      </select>
+    </section>
+
+    <!-- Chart: Last 24 Hours -->
+    <section class="chart-section card fade-in">
+      <div class="chart-header">
+        <h3>Last 24 Hours (Hourly)</h3>
+      </div>
+      <canvas id="hourlyChart"></canvas>
+    </section>
+
+    <!-- Chart: Last 7 Days -->
+    <section class="chart-section card fade-in">
+      <div class="chart-header">
+        <h3>Last 7 Days (Daily)</h3>
+      </div>
+      <canvas id="weeklyChart"></canvas>
+    </section>
+
+    <!-- Chart: Custom Range -->
+    <section class="chart-section card fade-in">
+      <div class="chart-header">
+        <h3>Custom Time Range</h3>
+        <div class="time-filter">
+          <label>Start:</label>
+          <input type="time" id="startTime" value="09:00">
+          <label>End:</label>
+          <input type="time" id="endTime" value="18:00">
+          <button id="filterBtn" class="btn">Apply</button>
         </div>
-        <div class="nav-right">
-            <a href="index.html" class="nav-link">Camera Overview</a>
-            <a href="history.html" class="nav-link">History</a>
-            <a href="analytics.html" class="nav-link active">Analytics</a>
-        </div>
-    </header>
+      </div>
+      <canvas id="customChart"></canvas>
+    </section>
+  </main>
 
-    <main class="analytics-container">
-        <h2>People Flow Analytics</h2>
-        <section class="camera-selector">
-            <label for="cameraSelect">Select Camera:</label>
-            <select id="cameraSelect">
-                <option value="">All Cameras</option>
-            </select>
-        </section>
-        <!-- 近24小時折線圖 -->
-        <section class="chart-section">
-            <h3>Last 24 Hours (Hourly)</h3>
-            <canvas id="hourlyChart"></canvas>
-        </section>
-
-        <!-- 近一週柱狀圖 -->
-        <section class="chart-section">
-            <h3>Last 7 Days (Daily)</h3>
-            <canvas id="weeklyChart"></canvas>
-        </section>
-
-        <!-- 自選時段報表 -->
-        <section class="chart-section">
-            <h3>Custom Time Range</h3>
-            <label>Start Time:</label>
-            <input type="time" id="startTime" value="09:00">
-            <label>End Time:</label>
-            <input type="time" id="endTime" value="18:00">
-            <button id="filterBtn">Apply</button>
-            <canvas id="customChart"></canvas>
-        </section>
-    </main>
-
-    <script src="{{ url_for('static', filename='analytics.js') }}"></script>
+  <script src="{{ url_for('static', filename='analytics.js') }}"></script>
 </body>
-
 </html>

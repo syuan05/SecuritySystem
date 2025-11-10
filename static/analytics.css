@@ -1,125 +1,105 @@
-/* ====== Global Reset ====== */
-body {
-    font-family: 'Inter', 'Segoe UI', sans-serif;
-    background-color: #f6f8fb;
-    color: #222;
-    margin: 0;
-    padding: 0;
+/* ==============================
+   ANALYTICS PAGE STYLE
+   ============================== */
+
+.analytics-container {
+  max-width: 1100px;
+  margin: 40px auto;
+  padding: 0 20px;
 }
 
-/* ====== Header (navbar) ====== */
-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background-color: #1e293b;
-    color: white;
-    padding: 12px 24px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-}
-
-.nav-left h1 {
-    font-size: 20px;
-    margin: 0;
-}
-
-.nav-right a {
-    color: #cbd5e1;
-    text-decoration: none;
-    margin-left: 20px;
-    font-weight: 500;
-    transition: color 0.3s;
-}
-
-.nav-right a:hover,
-.nav-right a.active {
-    color: #38bdf8;
-    border-bottom: 2px solid #38bdf8;
-}
-
-/* ====== Main Container ====== */
-main.analytics-container {
-    max-width: 1100px;
-    margin: 40px auto;
-    padding: 0 20px;
-}
-
-/* ====== Camera Selector ====== */
+/* ===== 相機選擇器 ===== */
 .camera-selector {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 30px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 30px;
 }
 
 .camera-selector label {
-    font-weight: 600;
+  font-weight: 600;
+  color: var(--bg-dark);
 }
 
 .camera-selector select {
-    padding: 6px 12px;
-    border: 1px solid #ccc;
-    border-radius: 6px;
-    font-size: 14px;
-    background-color: #fff;
-    cursor: pointer;
-    transition: border-color 0.3s;
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  font-size: 14px;
+  background-color: #fff;
+  transition: border-color 0.3s;
 }
 
 .camera-selector select:hover {
-    border-color: #38bdf8;
+  border-color: var(--accent);
 }
 
-/* ====== Chart Section ====== */
+/* ===== 圖表區塊 ===== */
 .chart-section {
-    background: #fff;
-    border-radius: 12px;
-    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1);
-    padding: 20px;
-    margin-bottom: 30px;
-    transition: transform 0.2s;
+  margin-bottom: 32px;
+  transition: transform 0.3s ease;
 }
 
 .chart-section:hover {
-    transform: translateY(-3px);
+  transform: translateY(-3px);
 }
 
-.chart-section h3 {
-    margin-top: 0;
-    color: #0f172a;
-    font-size: 16px;
+.chart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 2px solid #f1f5fb;
+  margin-bottom: 16px;
+  padding-bottom: 8px;
 }
 
-/* ====== Time Filter ====== */
-.chart-section label {
-    font-weight: 500;
-    margin-right: 6px;
+.chart-header h3 {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--bg-dark);
 }
 
-.chart-section input[type="time"] {
-    padding: 4px 8px;
-    border-radius: 6px;
-    border: 1px solid #ccc;
-    margin-right: 10px;
+/* ===== 時間篩選 ===== */
+.time-filter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
-.chart-section button {
-    background-color: #38bdf8;
-    border: none;
-    color: white;
-    font-weight: 500;
-    padding: 6px 14px;
-    border-radius: 6px;
-    cursor: pointer;
-    transition: background-color 0.3s;
+.time-filter input[type="time"] {
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  padding: 4px 8px;
+  background: white;
 }
 
-.chart-section button:hover {
-    background-color: #0ea5e9;
+.time-filter button {
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.2s;
 }
 
-/* ====== Canvas sizing ====== */
+.time-filter button:hover {
+  background: var(--accent-hover);
+  transform: translateY(-2px);
+}
+
+/* ===== Canvas 大小 ===== */
 canvas {
-    width: 100% !important;
-    height: 320px !important;
+  width: 100% !important;
+  height: 320px !important;
+  border-radius: 10px;
+  background: #ffffff;
+  box-shadow: var(--shadow);
+  padding: 10px;
+}
+
+/* ===== 淡入動畫 ===== */
+.chart-section.fade-in {
+  animation: fadeInUp 0.8s ease both;
 }

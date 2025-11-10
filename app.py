@@ -15,17 +15,17 @@ app = Flask(__name__)
 def index():
     return render_template('index.html')
 
-@app.route('/camera.html')
-def camera_page():
+@app.route('/camera')
+def camera():
     return render_template('camera.html')
 
-@app.route('/history.html')
-def history_page():
+@app.route('/history')
+def history():
     return render_template('history.html')
 
-@app.route("/analytics.html")
-def analytics_page():
-    return render_template("analytics.html")
+@app.route('/analytics')
+def analytics():
+    return render_template('analytics.html')
 
 
 @app.route("/video_feed/<int:camera_id>")

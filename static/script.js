@@ -40,7 +40,7 @@ function addCameraCard(cam) {
       />
     </div>
     <div class="camera-actions">
-      <a href="/camera.html?id=${cam.camera_id}" class="view-btn">View</a>
+      <a href="/camera?id=${cam.camera_id}" class="view-btn">View</a>
     </div>
   `;
   cameraList.appendChild(card);

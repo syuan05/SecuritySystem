@@ -1,0 +1,215 @@
+/* ==============================
+   GLOBAL THEME - Security System
+   ============================== */
+
+/* ---- Color Palette ---- */
+:root {
+    --bg-dark: #1e293b;
+    /* Header 深藍灰 */
+    --bg-light: #f1f5f9;
+    /* 主背景灰白 */
+    --accent: #38bdf8;
+    /* 主藍 */
+    --accent-hover: #0ea5e9;
+    /* Hover 藍 */
+    --text-main: #0f172a;
+    /* 主要文字 */
+    --card-bg: #ffffff;
+    /* 卡片白底 */
+    --border-color: #e2e8f0;
+    --shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+}
+
+/* ---- Global Reset ---- */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Inter', 'Segoe UI', sans-serif;
+    color: var(--text-main);
+    background-color: #f1f5f9;
+    /* ← 統一一個淺灰底色 */
+    overflow-x: hidden;
+}
+
+/* ---- Header ---- */
+header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 28px;
+    background: var(--bg-dark);
+    color: white;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.nav-left h1 {
+    font-size: 20px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+}
+
+.nav-right {
+    display: flex;
+    gap: 24px;
+}
+
+.nav-link {
+    color: #cbd5e1;
+    text-decoration: none;
+    font-weight: 500;
+    position: relative;
+    transition: color 0.3s;
+}
+
+.nav-link::after {
+    content: "";
+    position: absolute;
+    bottom: -4px;
+    left: 0;
+    width: 0;
+    height: 2px;
+    background: var(--accent);
+    transition: width 0.3s;
+}
+
+.nav-link:hover,
+.nav-link.active {
+    color: var(--accent);
+}
+
+.nav-link:hover::after,
+.nav-link.active::after {
+    width: 100%;
+}
+
+/* ---- Common Card ---- */
+.card {
+    background: var(--card-bg);
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+    padding: 16px;
+    transition: all 0.25s ease;
+}
+
+.card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.15);
+}
+
+/* ---- Buttons ---- */
+.btn {
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 14px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.25s ease;
+    box-shadow: 0 0 0 rgba(56, 189, 248, 0);
+}
+
+.btn:hover {
+    background: var(--accent-hover);
+    box-shadow: 0 0 12px rgba(56, 189, 248, 0.6);
+    transform: translateY(-1px);
+}
+
+/* ---- Input & Select ---- */
+input,
+select {
+    padding: 6px 10px;
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+    font-size: 14px;
+    background: white;
+    transition: border-color 0.2s;
+}
+
+input:focus,
+select:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+/* ---- Table ---- */
+table {
+    border-collapse: collapse;
+    width: 100%;
+    background: white;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: var(--shadow);
+    animation: fadeInUp 0.6s ease both;
+}
+
+thead {
+    background: #f1f5fb;
+}
+
+th,
+td {
+    text-align: center;
+    padding: 10px;
+    border-bottom: 1px solid #e5e7eb;
+    font-size: 15px;
+}
+
+tbody tr:hover {
+    background: #f9faff;
+}
+
+/* ---- Layout Utils ---- */
+main {
+    padding: 30px;
+    max-width: 1200px;
+    margin: auto;
+}
+
+/* ---- Animation ---- */
+@keyframes fadeInUp {
+    0% {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.fade-in {
+    animation: fadeInUp 0.6s ease both;
+}
+
+/* ---- Scrollbar ---- */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-thumb {
+    background-color: #cbd5e1;
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background-color: #94a3b8;
+}
+
+/* ---- Form Section Card ---- */
+.form-card {
+    background: white;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: var(--shadow);
+    margin-bottom: 20px;
+    animation: fadeInUp 0.5s ease both;
+}

@@ -1,180 +1,84 @@
-* {
-  box-sizing: border-box;
-}
+/* ==============================
+   CAMERA PAGE STYLE
+   ============================== */
 
-body {
-  margin: 0;
-  font-family: "Segoe UI", Arial, sans-serif;
-  background: #f2f4f8;
-  color: #2c3e50;
-}
-
-/* ===== Header ===== */
-header {
-  background: #1f2d3d;
-  color: #ecf0f1;
-  padding: 12px 24px;
-  display: flex;
-  align-items: center;
-  gap: 20px;
-}
-header h1 {
-  font-size: 22px;
-  font-weight: 600;
-}
-.back-btn {
-  color: #74b9ff;
-  text-decoration: none;
-}
-.back-btn:hover {
-  color: #0984e3;
-}
-
-/* ===== Layout ===== */
 .camera-layout {
   display: flex;
-  height: calc(100vh - 60px);
+  gap: 24px;
+  padding: 24px;
+  height: calc(100vh - 80px);
 }
 
-/* ===== Left Panel ===== */
+/* ===== 左側設定面板 ===== */
 .left-panel {
-  width: 320px;
-  background: #fff;
-  padding: 20px 18px;
+  flex: 0 0 320px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  padding: 20px;
   overflow-y: auto;
-  border-right: 1px solid #dfe6e9;
+  animation: fadeInUp 0.6s ease both;
 }
+
+.left-panel h2 {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 16px;
+  color: var(--bg-dark);
+}
+
+/* 設定卡片 */
 .setting-card {
-  background: #fdfdfd;
-  border: 1px solid #e5e8eb;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
   border-radius: 8px;
-  padding: 10px 14px;
-  margin-bottom: 18px;
+  padding: 12px 14px;
+  margin-bottom: 16px;
+  transition: transform 0.2s, box-shadow 0.2s;
 }
+
+.setting-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+}
+
 .setting-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin-bottom: 6px;
 }
+
 .setting-label {
   font-weight: 600;
+  color: #1e293b;
 }
 
-/* ===== Fence Buttons ===== */
 .fence-btn {
-  color: #0984e3;
-  font-weight: 600;
+  color: var(--accent);
   cursor: pointer;
-}
-.fence-btn:hover {
-  color: #74b9ff;
+  text-decoration: none;
+  font-weight: 600;
+  transition: color 0.3s;
 }
 
-/* ===== Fence Panel ===== */
+.fence-btn:hover {
+  color: var(--accent-hover);
+}
+
+/* Fence Panel */
 .fence-panel {
   margin-top: 10px;
   border: 1px solid #dfe6e9;
   padding: 10px;
   border-radius: 6px;
-  background: #fafbfc;
+  background: #f9fafb;
 }
 .hidden {
   display: none;
 }
-.fence-panel.active {
-  max-height: 500px; /* 根據實際內容可調大一點 */
-  opacity: 1;
-}
 
-.fence-panel.hidden {
-  max-height: 0;
-  opacity: 0;
-}
-.fence-panel input,
-.fence-panel select,
-.fence-panel button {
-  width: 100%;
-  margin-top: 6px;
-  padding: 6px;
-  font-size: 14px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-}
-.fence-panel button {
-  background: #3498db;
-  color: white;
-  border: none;
-  cursor: pointer;
-  border-radius: 5px;
-}
-.fence-panel button:hover {
-  background: #2980b9;
-}
-
-.fence-form {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 10px;
-  background: #fff;
-  border-radius: 8px;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-}
-
-.fence-form input, .fence-form select {
-  padding: 6px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-}
-
-.fence-form button {
-  background: #007bff;
-  color: #fff;
-  border: none;
-  padding: 6px;
-  border-radius: 6px;
-  cursor: pointer;
-}
-
-/* ===== Video ===== */
-.video-panel {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  background: #0e0e0e;
-  height: 100%;
-}
-
-/* 影片容器：用於堆疊影像與畫布 */
-.video-container {
-  position: relative;
-  width: 100%;
-  max-width: 900px;      /* 可以依畫面大小調整 */
-  border-radius: 10px;
-  overflow: hidden;
-}
-.video-stream {
-  width: 100%;
-  display: block;
-  border-radius: 10px;
-}
-
-#cameraVideo {
-  max-width: 100%;
-  display: block;
-}
-
-#drawCanvas {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: auto;     /* 允許滑鼠操作 */
-  cursor: crosshair;        /* 滑鼠變十字線 */
-}
-
-/* ===== Switch ===== */
+/* Switch */
 .switch {
   position: relative;
   width: 46px;
@@ -188,7 +92,7 @@ header h1 {
 .slider {
   position: absolute;
   cursor: pointer;
-  background-color: #ccc;
+  background-color: #cbd5e1;
   border-radius: 24px;
   transition: 0.3s;
   top: 0; left: 0; right: 0; bottom: 0;
@@ -205,16 +109,47 @@ header h1 {
   transition: 0.3s;
 }
 .switch input:checked + .slider {
-  background-color: #3498db;
+  background-color: var(--accent);
 }
 .switch input:checked + .slider:before {
   transform: translateX(22px);
 }
 
-.time-input {
-  width: 80px;
-  height: 28px;
-  text-align: center;
-  padding: 2px 4px;
-  box-sizing: border-box;
+/* ===== 右側影片區 ===== */
+.video-panel {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: #0f172a;
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  position: relative;
+  overflow: hidden;
+}
+
+.video-container {
+  position: relative;
+  width: 90%;
+  max-width: 900px;
+  border: 3px solid var(--accent);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 0 20px rgba(56,189,248,0.3);
+}
+
+.video-stream {
+  width: 100%;
+  display: block;
+  border-radius: 10px;
+}
+
+#drawCanvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: auto;
+  cursor: crosshair;
 }
