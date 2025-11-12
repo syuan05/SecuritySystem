@@ -7,7 +7,6 @@ from detector.event_bus import event_bus
 from datetime import timedelta
 from detector.db_writer import person_count_writer
 from detector.event_helper import make_event
-from detector.event_bus import event_bus
 from detector.global_models import pose_model, pose_model_lock
 
 # =========================================================
@@ -21,9 +20,14 @@ class GateRuntime:
 
 
 def side_sign(a, b, p):
-    """判定點 p 在 A->B 的哪一側"""
+    """以 A->B 的左法向量判斷點 p 位於 A 側(-1)、B 側(+1) 或 線上(0)。"""
     ax, ay = a; bx, by = b; px, py = p
-    return (bx - ax) * (py - ay) - (by - ay) * (px - ax)
+    vx, vy = bx - ax, by - ay
+    nx, ny = -vy, vx
+    s = (px - ax) * nx + (py - ay) * ny
+    if s > 0:  return +1
+    if s < 0:  return -1
+    return 0
 
 
 def point_seg_dist(p, a, b):
@@ -37,21 +41,6 @@ def point_seg_dist(p, a, b):
     return math.hypot(px-cx, py-cy)
 
 
-def format_time(value, default):
-    """MySQL TIME / timedelta → HH:MM:SS"""
-    if value is None:
-        return default
-    if isinstance(value, timedelta):
-        total_seconds = int(value.total_seconds())
-        h, m = divmod(total_seconds, 3600)
-        m, s = divmod(m, 60)
-        return f"{h:02d}:{m:02d}:{s:02d}"
-    try:
-        return value.strftime("%H:%M:%S")
-    except Exception:
-        return default
-
-
 # =========================================================
 # 🔸 主類別
 # =========================================================
@@ -61,18 +50,16 @@ class PersonCountModule(DetectorBase):
         self.model = pose_model
         self.gates = self._load_gates()
         self.rt = {}
-        self.conf = 0.4
-        self.FLASH_SEC = 1.0
+        self.conf = 0.3
 
     # =====================================================
     # 🔹 載入門線設定
     # =====================================================
     def _load_gates(self):
-        print("[DEBUG] load gates for camera:", self.camera_id)
         conn = get_db_connection()
         cur = conn.cursor(dictionary=True)
         cur.execute("""
-            SELECT DISTINCT g.gate_id, g.gate_name, g.direction AS in_direction, g.polygon_json
+            SELECT g.gate_id, g.gate_name, g.direction AS in_direction, g.polygon_json
             FROM gates g
             LEFT JOIN func_schedules s
               ON g.gate_id=s.gate_id AND s.function_type='person_count' AND s.is_active=1
@@ -111,10 +98,10 @@ class PersonCountModule(DetectorBase):
         COOLDOWN = 0.5
         MIN_NEAR = 30
         last_evt = {}
-        with pose_model_lock:  # 🔒 保證單一推論執行
+        with pose_model_lock: 
             results = pose_model.track(frame, persist=True, conf=self.conf, imgsz=960, verbose=False)
         events = []
-        draw_results = []  # ✅ 給 Drawer 畫用
+        draw_results = [] 
         if not results:
             return []
 
@@ -130,7 +117,6 @@ class PersonCountModule(DetectorBase):
             x1, y1, x2, y2 = map(int, box.tolist())
             tid = int(ids[i]) if ids is not None else i
 
-            # ⚙️ 取腳底點
             foot = (int((x1 + x2) / 2), int(y2))
             if kps is not None and kps.shape[1] >= 17:
                 left_ankle = kps[i][15]
@@ -141,7 +127,6 @@ class PersonCountModule(DetectorBase):
                         int((left_ankle[1] + right_ankle[1]) / 2),
                     )
 
-            # ✅ 每幀都記錄 bbox/foot 給 Drawer 畫
             draw_results.append({
                 "bbox": (x1, y1, x2, y2),
                 "foot": foot
@@ -176,10 +161,12 @@ class PersonCountModule(DetectorBase):
                     level = "heavy"  # 固定全時啟用
 
                     # --- 更新 event bus / 統計 ---
+                    event_bus.mark_gate_alert(self.camera_id, g["id"])
                     event_bus.update_person_count(self.camera_id, g["id"], cross_dir)
 
                     # --- 寫入資料庫 ---
                     person_count_writer.add_flow(
+                        gate_id=g["id"],
                         camera_id=self.camera_id,
                         direction=cross_dir
                     )
@@ -211,5 +198,33 @@ class PersonCountModule(DetectorBase):
         return self.process_frame(frame)
 
     def reload_gates(self):
-        self.gates = self._load_gates()
-        print(f"[INFO] Reloaded people-flow gates for camera {self.camera_id}")
+        """重新載入門線設定並立即更新"""
+        self.gates = self._load_gates()  # ✅ 就跟 __init__ 時一樣
+        print(f"[INFO] Reloaded in/out gates for camera {self.camera_id}")
+
+        try:
+            from detector.video_manager import manager_instance
+            from detector.drawer import Drawer
+            drawer = Drawer()
+
+            worker_bundle = manager_instance.workers.get(self.camera_id)
+            if not worker_bundle:
+                print(f"[WARN] No worker found for camera {self.camera_id}, skip refresh.")
+                return
+
+            video_worker = worker_bundle["video"]
+            frame = video_worker.get_frame()
+            if frame is None:
+                print(f"[WARN] No frame available for camera {self.camera_id}, skip refresh.")
+                return
+
+            # ✅ 重畫新的線條
+            new_frame = drawer.draw_gates_only(frame, self.gates)
+            with video_worker.lock:
+                video_worker.frame = new_frame.copy()
+
+            print(f"[REFRESH] Camera {self.camera_id}: gates redrawn after reload.")
+        except Exception as e:
+            import traceback
+            print(f"[ERROR] Failed to refresh frame for camera {self.camera_id}: {e}")
+            traceback.print_exc()

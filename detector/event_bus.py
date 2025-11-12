@@ -23,12 +23,15 @@ class EventBus:
     # 🔹 InOut 警報事件（紅線閃爍）
     # ======================================================
     def mark_gate_alert(self, camera_id, gate_id, level="light"):
-        if camera_id is None:
-            print(f"[WARN] Skip alert: gate {gate_id} missing camera_id")
-            return
+        # if camera_id is None:
+        #     print(f"[WARN] Skip alert: gate {gate_id} missing camera_id")
+        #     return
+        # with self.lock:
+        #     now = time.time()
+        #     color = (0, 0, 255) if level == "heavy" else (0, 255, 255)
         with self.lock:
             now = time.time()
-            color = (0, 0, 255) if level == "heavy" else (0, 255, 255)
+            color = (0, 0, 255)
             self.gate_status[camera_id][gate_id] = {
                 "color": color,
                 "timestamp": now
@@ -83,6 +86,14 @@ class EventBus:
                 },
                 "events": list(self.last_events[camera_id])
             }
+    def ensure_person_count_init(self, camera_id, gate_ids=None):
+        """確保即使剛啟動也有初始統計結構"""
+        with self.lock:
+            _ = self.person_count[camera_id]
+            gates = self.gate_counts[camera_id]
+            if gate_ids:
+                for gid in gate_ids:
+                    _ = gates[gid]  # 觸發 defaultdict 建立 {"in":0, "out":0}
 
 # 🔸 全域唯一 EventBus 實例
 event_bus = EventBus()

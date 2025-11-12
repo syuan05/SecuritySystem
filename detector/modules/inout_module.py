@@ -41,11 +41,6 @@ def point_seg_dist(p, a, b):
     return math.hypot(px-cx, py-cy)
 
 
-def is_inside(side_val, in_dir):
-    """根據門線方向與外積符號判定是否在內側"""
-    return side_val > 0 if in_dir == 1 else side_val < 0
-
-
 # =========================================================
 # 🔸 主類別
 # =========================================================
@@ -55,7 +50,6 @@ class InOutModule(DetectorBase):
         self.model = pose_model
         self.gates = self._load_gates()
         self.rt = {}
-        self.FLASH_SEC = 1.5
         self.conf = 0.3
 
     # =====================================================
@@ -124,14 +118,10 @@ class InOutModule(DetectorBase):
         COOLDOWN = 0.5
         MIN_NEAR = 30
         last_evt = {}
-        with pose_model_lock:  # 🔒 保證單一推論執行
-            import time
-            t0 = time.time()
+        with pose_model_lock:
             results = self.model.track(frame, persist=True, conf=self.conf, imgsz=960, verbose=False)
-            print(f"[PERF] YOLO track took {time.time()-t0:.3f}s on camera {self.camera_id}")
         events = []
-        draw_results = []  # 給 Drawer 畫的所有人資訊
-
+        draw_results = [] 
         if not results:
             return []
 
@@ -147,7 +137,6 @@ class InOutModule(DetectorBase):
             x1, y1, x2, y2 = map(int, box.tolist())
             tid = int(ids[i]) if ids is not None else i
 
-            # ⚙️ 取腳底點
             foot = (int((x1 + x2) / 2), int(y2))
             if kps is not None and kps.shape[1] >= 17:
                 left_ankle, right_ankle = kps[i][15], kps[i][16]
@@ -233,5 +222,33 @@ class InOutModule(DetectorBase):
     # 🔹 重新載入門線設定
     # =====================================================
     def reload_gates(self):
-        self.gates = self._load_gates()
+        """重新載入門線設定並立即更新"""
+        self.gates = self._load_gates()  # ✅ 就跟 __init__ 時一樣
         print(f"[INFO] Reloaded in/out gates for camera {self.camera_id}")
+
+        try:
+            from detector.video_manager import manager_instance
+            from detector.drawer import Drawer
+            drawer = Drawer()
+
+            worker_bundle = manager_instance.workers.get(self.camera_id)
+            if not worker_bundle:
+                print(f"[WARN] No worker found for camera {self.camera_id}, skip refresh.")
+                return
+
+            video_worker = worker_bundle["video"]
+            frame = video_worker.get_frame()
+            if frame is None:
+                print(f"[WARN] No frame available for camera {self.camera_id}, skip refresh.")
+                return
+
+            # ✅ 重畫新的線條
+            new_frame = drawer.draw_gates_only(frame, self.gates)
+            with video_worker.lock:
+                video_worker.frame = new_frame.copy()
+
+            print(f"[REFRESH] Camera {self.camera_id}: gates redrawn after reload.")
+        except Exception as e:
+            import traceback
+            print(f"[ERROR] Failed to refresh frame for camera {self.camera_id}: {e}")
+            traceback.print_exc()

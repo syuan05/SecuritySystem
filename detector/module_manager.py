@@ -49,6 +49,9 @@ class ModuleManager:
                 self.modules.append(pf_mod)
                 person_count = len(pf_mod.gates)
                 person_names = [g["name"] for g in pf_mod.gates]
+                from detector.event_bus import event_bus
+                gate_ids = [g["id"] for g in pf_mod.gates]
+                event_bus.ensure_person_count_init(self.camera_id, gate_ids)
             except Exception as e:
                 print(f"[WARN] Camera {self.camera_id}: failed to load PersonCountModule ({e})")
 

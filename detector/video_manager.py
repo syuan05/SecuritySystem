@@ -77,6 +77,8 @@ class VideoManager:
             return
 
         modules = worker_bundle["modules"]
+
+        # ✅ 不再強制重建 module_manager，直接讓現有模組 reload
         reloaded = 0
         for m in modules.modules:
             if hasattr(m, "reload_gates"):
@@ -87,6 +89,32 @@ class VideoManager:
                     print(f"[ERROR] Reload gates failed for camera {camera_id}: {e}")
 
         print(f"[RELOAD] Camera {camera_id}: {reloaded} modules reloaded.")
+
+        # ✅ 立即刷新畫面一次
+        try:
+            video_worker = worker_bundle["video"]
+            frame = video_worker.get_frame()
+            if frame is not None:
+                from detector.drawer import Drawer
+                drawer = Drawer()
+
+                all_gates = []
+                for m in modules.modules:
+                    if hasattr(m, "gates"):
+                        all_gates.extend(m.gates)
+
+                new_frame = drawer.draw_gates_only(frame, all_gates)
+                with video_worker.lock:
+                    video_worker.frame = new_frame.copy()
+
+                print(f"[REFRESH] Camera {camera_id}: gates redrawn after reload.")
+            else:
+                print(f"[WARN] No frame available for camera {camera_id}, skip refresh.")
+        except Exception as e:
+            import traceback
+            print(f"[ERROR] Failed to refresh frame for camera {camera_id}: {e}")
+            traceback.print_exc()
+
 
     # ==========================================================
     # 🔹 停止所有攝影機

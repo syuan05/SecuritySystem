@@ -33,8 +33,8 @@ def video_feed(camera_id):
     def generate():
         while True:
             frame = manager.get_last_frame(camera_id)
-            if frame is not None:
-                print(f"[STREAM] Sending frame from camera {camera_id} at {time.time():.3f}")
+            # if frame is not None:
+                # print(f"[STREAM] Sending frame from camera {camera_id} at {time.time():.3f}")
             if frame is not None:
                 _, buffer = cv2.imencode(".jpg", frame)
                 yield (b"--frame\r\n"

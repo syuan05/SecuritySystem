@@ -16,38 +16,50 @@ class BaseWriter:
 
     def _worker(self):
         conn = get_db_connection()
+        conn.autocommit = True  # ✅ 強制自動提交，避免 transaction 堆積
         cur = conn.cursor()
         self.batch = []  # 🟢 批次暫存區
 
         while self.running:
             try:
+                # 取出資料
                 item = self.queue.get(timeout=1)
                 self.batch.append(item)
                 print(f"[DB] {self.__class__.__name__} got item ({len(self.batch)} pending)")
 
-                # 當累積 10 筆（或更多）再一起寫入
+                # 當累積滿 10 筆就批次寫入
                 if len(self.batch) >= 10:
-                    t0 = time.time()
                     for it in self.batch:
                         self._write(cur, it)
                     conn.commit()
-                    print(f"[DB] {self.__class__.__name__} batch commit {len(self.batch)} OK ({time.time()-t0:.3f}s)")
+                    print(f"[DB] {self.__class__.__name__} batch commit {len(self.batch)} OK")
                     self.batch.clear()
 
+                    # ✅ 重建 cursor（釋放舊資源，避免卡死）
+                    cur.close()
+                    cur = conn.cursor()
+
             except queue.Empty:
-                # 若沒資料但有尚未 commit 的批次，也可視情況寫入
+                # 💤 queue 空時也 flush 一次
                 if self.batch:
                     for it in self.batch:
                         self._write(cur, it)
                     conn.commit()
                     print(f"[DB] {self.__class__.__name__} flush remaining {len(self.batch)} OK (idle)")
                     self.batch.clear()
+
+                    # ✅ 這兩行最關鍵！重建 cursor 防止 idle lock
+                    cur.close()
+                    cur = conn.cursor()
                 continue
+
             except Exception as e:
                 print(f"[{self.__class__.__name__}] Error:", e)
 
+        # 🔚 thread 結束時關閉
         cur.close()
         conn.close()
+
 
     def stop(self):
         self.running = False
@@ -80,19 +92,26 @@ class EventWriter(BaseWriter):
 # =====================================================
 class PersonCountWriter(BaseWriter):
     def _write(self, cur, item):
-        # 將 "A->B" / "B->A" 轉成 enum 允許值 "in" / "out"
-        dir_map = {
-            "A->B": "in",
-            "B->A": "out"
-        }
-        direction = dir_map.get(item["direction"], "in")  # 預設 in
-        cur.execute("""
-            INSERT INTO people_flow (camera_id, direction, timestamp)
-            VALUES (%s, %s, NOW());
-        """, (item["camera_id"], direction))
-    def add_flow(self, camera_id, direction):
+        """將人流資料寫入資料庫（含 gate_id）"""
+        dir_map = {"A->B": "in", "B->A": "out"}
+        direction = dir_map.get(item.get("direction"), "in")
+
+        try:
+            cur.execute("""
+                INSERT INTO people_flow (gate_id, camera_id, direction, timestamp)
+                VALUES (%s, %s, %s, NOW());
+            """, (
+                item.get("gate_id"),
+                item.get("camera_id"),
+                direction
+            ))
+        except Exception as e:
+            print(f"[PersonCountWriter] SQL Error: {e}")
+
+    def add_flow(self, gate_id, camera_id, direction):
         """非同步新增一筆人流紀錄"""
-        self.add(camera_id=camera_id, direction=direction)
+        self.add(gate_id=gate_id, camera_id=camera_id, direction=direction)
+
 
 # =====================================================
 # 🔸 全域實例（模組統一使用）
