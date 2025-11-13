@@ -66,17 +66,15 @@ class ModuleManager:
         cam_id = camera_id or self.camera_id
         results = []
         gates = []
-        drawn = frame
 
         for m in self.modules:
             if hasattr(m, "gates"):
                 gates.extend([g for g in m.gates if g.get("camera_id") == self.camera_id])
-            mod_results = m.analyze(drawn)
+
+            mod_results = m.analyze(frame)
+
             if isinstance(mod_results, list):
                 results.extend(mod_results)
-            # 如果模組直接回傳畫面（極少數情況），只在沒有結果時使用
-            elif isinstance(mod_results, (np.ndarray)) and len(results) == 0:
-                drawn = mod_results
-        gates = [g for g in gates if g.get("camera_id") == self.camera_id]
         gate_name_map = {g["id"]: g["name"] for g in gates}
-        return self.drawer.draw(drawn, self.camera_id, results, gates, gate_name_map)
+
+        return results, gates, gate_name_map

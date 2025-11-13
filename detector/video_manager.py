@@ -39,7 +39,6 @@ class VideoManager:
                 drawn_frame = module_manager.process(frame, camera_id)
                 return drawn_frame
 
-
             video_worker.callback = callback
             video_worker.start()
 
@@ -61,7 +60,7 @@ class VideoManager:
         return bundle["video"].get_frame()
 
     # ==========================================================
-    # 🔹 熱重載門線設定（僅更新具 reload_gates() 的模組）
+    # 🔹 熱重載門線設定（更新模組 + 通知刷新）
     # ==========================================================
     def reload_gates(self, camera_id=None):
         if camera_id:
@@ -76,61 +75,36 @@ class VideoManager:
             print(f"[WARN] Reload skipped: camera {camera_id} not found.")
             return
 
-        # 正確取得 modules
         modules = worker_bundle["modules"]
 
-        # === 重新載入每個模組 ===
+        # === 1️⃣ 重新載入每個模組的 gates ===
         reloaded = 0
         for m in modules.modules:
             if hasattr(m, "reload_gates"):
                 try:
-                    m.reload_gates()
+                    m.reload_gates()  # ✅ 這裡面已經會呼叫 request_reload_refresh()
                     reloaded += 1
                 except Exception as e:
                     print(f"[ERROR] Reload gates failed for module in camera {camera_id}: {e}")
 
         print(f"[RELOAD] Camera {camera_id}: {reloaded} modules reloaded.")
 
-        # === 收集所有 gate IDs (人流 + inout) ===
+        # === 2️⃣ 收集所有 gate IDs (人流 + inout) ===
         person_gate_ids = []
         for m in modules.modules:
             if m.__class__.__name__ == "PersonCountModule":
                 if hasattr(m, "gates"):
                     person_gate_ids.extend([g["id"] for g in m.gates])
-        # === 初始化 event_bus 統計（確保左上面板更新） ===
+
+        # === 3️⃣ 初始化 event_bus 統計（確保左上面板更新） ===
         try:
             from detector.event_bus import event_bus
             event_bus.ensure_person_count_init(camera_id, person_gate_ids)
         except Exception as e:
             print(f"[ERROR] ensure_person_count_init failed for camera {camera_id}: {e}")
 
-        # === 立即刷新畫面 ===
-        try:
-            video_worker = worker_bundle["video"]
-            frame = video_worker.get_frame()
-            if frame is not None:
-                from detector.drawer import Drawer
-                drawer = Drawer()
-
-                # 全部線條（inout + person_count）
-                all_gates = []
-                for m in modules.modules:
-                    if hasattr(m, "gates"):
-                        all_gates.extend(m.gates)
-
-                new_frame = drawer.draw_gates_only(frame, all_gates)
-                with video_worker.lock:
-                    video_worker.frame = new_frame.copy()
-
-                print(f"[REFRESH] Camera {camera_id}: gates redrawn after reload.")
-            else:
-                print(f"[WARN] No frame available for camera {camera_id}, skip refresh.")
-
-        except Exception as e:
-            import traceback
-            print(f"[ERROR] Failed to refresh frame for camera {camera_id}: {e}")
-            traceback.print_exc()
-
+        # ✅ 畫面刷新已經在各模組的 reload_gates() 中通知
+        # VideoWorker 會在下一幀自動處理，不需要在這裡操作
 
     # ==========================================================
     # 🔹 停止所有攝影機

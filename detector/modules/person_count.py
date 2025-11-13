@@ -94,15 +94,17 @@ class PersonCountModule(DetectorBase):
     # =====================================================
     # 🔹 主分析函式
     # =====================================================
-    from detector.drawer import Drawer
     def process_frame(self, frame):
         COOLDOWN = 0.5
         MIN_NEAR = 30
         last_evt = {}
+        
         with pose_model_lock: 
             results = pose_model.track(frame, persist=True, conf=self.conf, imgsz=960, verbose=False)
+        
         events = []
         draw_results = [] 
+        
         if not results:
             return []
 
@@ -153,15 +155,7 @@ class PersonCountModule(DetectorBase):
 
                     cross_dir = "A->B" if (prev_side > 0 and curr_side < 0) else "B->A"
 
-                    # --- 時間區間 ---
-                    now_t = datetime.datetime.now().time()
-                    fmt = "%H:%M:%S"
-                    now_t = datetime.datetime.now().time()
-                    start_t = datetime.time(0, 0, 0)
-                    end_t = datetime.time(23, 59, 59)
-                    level = "heavy"  # 固定全時啟用
-
-                    # --- 更新 event bus / 統計 ---
+                    # ✅ 只更新一次統計
                     event_bus.update_person_count(self.camera_id, g["id"], cross_dir)
 
                     # --- 寫入資料庫 ---
@@ -181,15 +175,14 @@ class PersonCountModule(DetectorBase):
                         tid=tid,
                         foot=foot
                     )
+                    print("[PC EVT]", evt)
                     event_bus.push_event(self.camera_id, evt)
                     events.append(evt)
 
                 rt.last_side[tid] = curr_side
 
         self.last_events = events
-        return draw_results  # ✅ 每幀都回傳偵測框
-
-
+        return draw_results
 
     def run(self, frame):
         return self.process_frame(frame)
@@ -198,33 +191,21 @@ class PersonCountModule(DetectorBase):
         return self.process_frame(frame)
 
     def reload_gates(self):
-        """重新載入門線設定並立即更新"""
-        self.gates = self._load_gates()  # ✅ 就跟 __init__ 時一樣
-        print(f"[INFO] Reloaded in/out gates for camera {self.camera_id}")
+        """
+        重新載入門線設定並請求畫面刷新
+        ✅ 使用非阻塞方式通知 VideoWorker 更新
+        """
+        self.gates = self._load_gates()
+        print(f"[INFO] Reloaded {len(self.gates)} person count gates for camera {self.camera_id}")
 
+        # ✅ 通知 VideoWorker 下一幀重繪（非阻塞）
         try:
             from detector.video_manager import manager_instance
-            from detector.drawer import Drawer
-            drawer = Drawer()
-
             worker_bundle = manager_instance.workers.get(self.camera_id)
-            if not worker_bundle:
-                print(f"[WARN] No worker found for camera {self.camera_id}, skip refresh.")
-                return
-
-            video_worker = worker_bundle["video"]
-            frame = video_worker.get_frame()
-            if frame is None:
-                print(f"[WARN] No frame available for camera {self.camera_id}, skip refresh.")
-                return
-
-            # ✅ 重畫新的線條
-            new_frame = drawer.draw_gates_only(frame, self.gates)
-            with video_worker.lock:
-                video_worker.frame = new_frame.copy()
-
-            print(f"[REFRESH] Camera {self.camera_id}: gates redrawn after reload.")
+            if worker_bundle:
+                video_worker = worker_bundle["video"]
+                video_worker.request_reload_refresh()
+            else:
+                print(f"[WARN] No worker found for camera {self.camera_id}")
         except Exception as e:
-            import traceback
-            print(f"[ERROR] Failed to refresh frame for camera {self.camera_id}: {e}")
-            traceback.print_exc()
+            print(f"[ERROR] Failed to request reload refresh: {e}")

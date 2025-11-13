@@ -66,31 +66,29 @@ class Drawer:
         # ==================================================
         total = state.get("person_total", {})
         gate_counts = state.get("gate_counts", {})
-        from detector.video_manager import manager_instance
-        worker = manager_instance.workers.get(camera_id)
-        modules = worker["modules"].modules if worker else []
-        has_person_module = any(m.__class__.__name__ == "PersonCountModule" for m in modules)
 
-        if not has_person_module:
+        # 若沒有 PersonCount 模組 → 不畫 panel（但不要 import video_manager）
+        if not gate_counts:
             return frame
-        
+
         y = 30
         cv2.putText(frame,
                     f"Total In: {total.get('in', 0)}    Total Out: {total.get('out', 0)}",
                     (20, y), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
         y += 25
 
+        # 確保 gate_name_map 永遠不是 None（避免直接噴錯）
+        gate_name_map = gate_name_map or {}
+
         for gid, info in gate_counts.items():
             name = gate_name_map.get(gid, f"Gate{gid}")
             text = f"{name}: In {info.get('in',0)} Out {info.get('out',0)}"
 
-            # 🔲 背景方塊
             cv2.rectangle(frame, (15, y - 18), (350, y + 4), (0,0,0), -1)
-
-            # 文字
             cv2.putText(frame, text, (20, y), cv2.FONT_HERSHEY_SIMPLEX,
                         0.55, (200,255,200), 1)
             y += 22
+
 
         # ==================================================
         # 6️⃣ 顯示視窗（除非 Flask 模式）

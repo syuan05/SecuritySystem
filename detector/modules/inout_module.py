@@ -8,6 +8,7 @@ from detector.db_writer import event_writer
 from detector.event_bus import event_bus
 from detector.event_helper import make_event
 from detector.global_models import pose_model, pose_model_lock
+
 # =========================================================
 # 🔸 輔助工具類別與函式
 # =========================================================
@@ -112,17 +113,18 @@ class InOutModule(DetectorBase):
     # =====================================================
     # 🔹 主分析函式
     # =====================================================
-    from detector.drawer import Drawer
-
     def process_frame(self, frame):
         model = self.model
         COOLDOWN = 0.5
         MIN_NEAR = 30
         last_evt = {}
+        
         with pose_model_lock:
             results = self.model.track(frame, persist=True, conf=self.conf, imgsz=960, verbose=False)
+        
         events = []
         draw_results = [] 
+        
         if not results:
             return []
 
@@ -210,8 +212,7 @@ class InOutModule(DetectorBase):
                 rt.last_side[tid] = curr_side
 
         self.last_events = events
-        return draw_results  # ✅ 每幀都傳回畫框資訊
-
+        return draw_results
 
     def run(self, frame):
         return self.process_frame(frame)
@@ -220,36 +221,24 @@ class InOutModule(DetectorBase):
         return self.process_frame(frame)
 
     # =====================================================
-    # 🔹 重新載入門線設定
+    # 🔹 重新載入門線設定（✅ 修正為非阻塞方式）
     # =====================================================
     def reload_gates(self):
-        """重新載入門線設定並立即更新"""
-        self.gates = self._load_gates()  # ✅ 就跟 __init__ 時一樣
-        print(f"[INFO] Reloaded in/out gates for camera {self.camera_id}")
+        """
+        重新載入門線設定並請求畫面刷新
+        ✅ 使用非阻塞方式通知 VideoWorker 更新
+        """
+        self.gates = self._load_gates()
+        print(f"[INFO] Reloaded {len(self.gates)} in/out gates for camera {self.camera_id}")
 
+        # ✅ 通知 VideoWorker 下一幀重繪（非阻塞）
         try:
             from detector.video_manager import manager_instance
-            from detector.drawer import Drawer
-            drawer = Drawer()
-
             worker_bundle = manager_instance.workers.get(self.camera_id)
-            if not worker_bundle:
-                print(f"[WARN] No worker found for camera {self.camera_id}, skip refresh.")
-                return
-
-            video_worker = worker_bundle["video"]
-            frame = video_worker.get_frame()
-            if frame is None:
-                print(f"[WARN] No frame available for camera {self.camera_id}, skip refresh.")
-                return
-
-            # ✅ 重畫新的線條
-            new_frame = drawer.draw_gates_only(frame, self.gates)
-            with video_worker.lock:
-                video_worker.frame = new_frame.copy()
-
-            print(f"[REFRESH] Camera {self.camera_id}: gates redrawn after reload.")
+            if worker_bundle:
+                video_worker = worker_bundle["video"]
+                video_worker.request_reload_refresh()
+            else:
+                print(f"[WARN] No worker found for camera {self.camera_id}")
         except Exception as e:
-            import traceback
-            print(f"[ERROR] Failed to refresh frame for camera {self.camera_id}: {e}")
-            traceback.print_exc()
+            print(f"[ERROR] Failed to request reload refresh: {e}")

@@ -54,20 +54,23 @@ class EventBus:
     # 🔹 統一事件推送（給前端或 Drawer）
     # ======================================================
     def push_event(self, camera_id, event):
-        """所有模組事件進入此入口"""
+        """
+        所有模組事件進入此入口
+        ⚠️ 不要在這裡更新統計 - 統計應該在模組內更新
+        """
         with self.lock:
             self.last_events[camera_id].append(event)
             if len(self.last_events[camera_id]) > 30:
                 self.last_events[camera_id] = self.last_events[camera_id][-30:]
 
-            # 若是人流事件，更新統計
-            if event["type"] == "person_count":
-                direction = event["meta"].get("direction", "")
-                gate_id = event["meta"].get("gate_id", 0)
-                self.update_person_count(camera_id, gate_id, direction)
+            # ❌ 移除重複更新
+            # if event["type"] == "person_count":
+            #     direction = event["meta"].get("direction", "")
+            #     gate_id = event["meta"].get("gate_id", 0)
+            #     self.update_person_count(camera_id, gate_id, direction)
 
     # ======================================================
-    # 🔹 Drawer 讀取用
+    # 🔹 Drawer 讀取用（非阻塞）
     # ======================================================
     def get_state(self, camera_id):
         with self.lock:
@@ -80,6 +83,7 @@ class EventBus:
                     gates[gid] = {"color": (0, 255, 0)}   # 綠色
                 else:
                     gates[gid] = {"color": info.get("color", (0, 255, 0))}
+            
             return {
                 "gates": gates,
                 "person_total": dict(self.person_count[camera_id]),
@@ -88,10 +92,15 @@ class EventBus:
                 },
                 "events": list(self.last_events[camera_id])
             }
+    
     def ensure_person_count_init(self, camera_id, gate_ids=None):
+        """初始化統計數據結構"""
         with self.lock:
             # 初始化總量
             _ = self.person_count[camera_id]
+
+            if gate_ids is None:
+                return
 
             # 刪除不存在的 gate
             current = self.gate_counts[camera_id]
