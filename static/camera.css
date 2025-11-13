@@ -39,7 +39,7 @@
 
 .setting-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
 }
 
 .setting-row {
@@ -54,16 +54,15 @@
   color: #1e293b;
 }
 
+/* Make + Edit Fence look nice */
 .fence-btn {
-  color: var(--accent);
-  cursor: pointer;
-  text-decoration: none;
   font-weight: 600;
-  transition: color 0.3s;
+  color: #3b82f6 !important;
+  cursor: pointer;
 }
 
 .fence-btn:hover {
-  color: var(--accent-hover);
+  color: #2563eb !important;
 }
 
 /* Fence Panel */
@@ -74,6 +73,7 @@
   border-radius: 6px;
   background: #f9fafb;
 }
+
 .hidden {
   display: none;
 }
@@ -84,19 +84,25 @@
   width: 46px;
   height: 24px;
 }
+
 .switch input {
   opacity: 0;
   width: 0;
   height: 0;
 }
+
 .slider {
   position: absolute;
   cursor: pointer;
   background-color: #cbd5e1;
   border-radius: 24px;
   transition: 0.3s;
-  top: 0; left: 0; right: 0; bottom: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
 }
+
 .slider:before {
   content: "";
   position: absolute;
@@ -108,10 +114,12 @@
   border-radius: 50%;
   transition: 0.3s;
 }
-.switch input:checked + .slider {
+
+.switch input:checked+.slider {
   background-color: var(--accent);
 }
-.switch input:checked + .slider:before {
+
+.switch input:checked+.slider:before {
   transform: translateX(22px);
 }
 
@@ -135,7 +143,7 @@
   border: 3px solid var(--accent);
   border-radius: 12px;
   overflow: hidden;
-  box-shadow: 0 0 20px rgba(56,189,248,0.3);
+  box-shadow: 0 0 20px rgba(56, 189, 248, 0.3);
 }
 
 .video-stream {
@@ -152,4 +160,252 @@
   height: 100%;
   pointer-events: auto;
   cursor: crosshair;
+}
+
+.fence-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-bottom: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  transition: all 0.25s;
+}
+
+.fence-card:hover {
+  transform: translateX(3px);
+  background: #f8fbff;
+}
+
+.fence-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.fence-name {
+  font-weight: 600;
+  color: #333;
+}
+
+.fence-actions button {
+  all: unset;
+  /* 取消舊版樣式 */
+}
+
+.fence-meta {
+  font-size: 13px;
+  color: #666;
+  margin-top: 4px;
+  display: flex;
+  justify-content: space-between;
+}
+
+.fence-edit-form {
+  margin-top: 10px;
+  padding: 10px;
+  background: #f1f5f9;
+  border-radius: 8px;
+  border: 1px solid #d0d7e2;
+}
+
+/* 小按鈕 */
+.btn-mini {
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  font-size: 13px;
+  margin-right: 6px;
+  transition: 0.2s;
+}
+
+.btn-green {
+  background: #34d399;
+  color: white;
+}
+
+.btn-green:hover {
+  background: #10b981;
+}
+
+.btn-red {
+  background: #ef4444;
+  color: white;
+}
+
+.btn-red:hover {
+  background: #dc2626;
+}
+
+.btn-blue {
+  background: #3b82f6;
+  color: white;
+}
+
+.btn-blue:hover {
+  background: #2563eb;
+}
+
+/* A/B 點控制圈 */
+.point-handle {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #ffcc00;
+  border: 2px solid #000;
+  position: absolute;
+  cursor: grab;
+}
+
+/* ===== Fence Form Style ===== */
+.fence-form {
+  background: #f8fafc;
+  border: 1px solid #dbe2ef;
+  padding: 14px;
+  border-radius: 10px;
+  margin-top: 10px;
+}
+
+.fence-form label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e293b;
+  margin-top: 10px;
+  display: block;
+}
+
+.fence-form input,
+.fence-form select {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  margin-top: 4px;
+  font-size: 14px;
+}
+
+/* Button set */
+.btn-area {
+  margin-top: 14px;
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end; 
+  width: 100%;
+}
+
+.btn-primary {
+  background: #3b82f6;
+  color: #fff;
+  border: none;
+  padding: 7px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.btn-primary:hover {
+  background: #2563eb;
+}
+
+.btn-secondary {
+  background: #e2e8f0;
+  color: #1e293b;
+  border: none;
+  padding: 7px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.btn-secondary:hover {
+  background: #cbd5e1;
+}
+
+.add-fence-btn {
+  display: block;
+  width: 100%;
+  padding: 8px 12px;
+  background: #f8fafc;
+  border: 1px solid #d1d9e5;
+  color: #475569;
+  font-size: 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  margin-top: 10px;
+  transition: 0.2s;
+}
+
+.add-fence-btn:hover {
+  background: #eef2f7;
+  border-color: #cbd5e1;
+}
+
+
+/* ======================
+   2. Edit / Delete Buttons
+   ====================== */
+.fence-icon-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: none;
+  background: #f1f5f9;
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #475569;
+  transition: all 0.2s;
+  padding: 0;
+  margin-left: 4px;
+}
+
+.fence-icon-btn:hover {
+  background: #e2e8f0;
+  color: #1e293b;
+}
+
+/* Delete icon hover 改成更紅 */
+.fence-icon-btn.delete-btn:hover {
+  background: #ffe4e6;
+  color: #e11d48;
+}
+/* ======================
+   3. Fence Card Style
+   ====================== */
+
+.fence-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 14px 18px;
+  margin-bottom: 12px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+  transition: 0.2s;
+}
+
+.fence-card:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+.fence-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.fence-name {
+  font-size: 17px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.fence-meta {
+  margin-top: 6px;
+  font-size: 14px;
+  color: #64748b;
+  display: flex;
+  justify-content: space-between;
 }

@@ -114,7 +114,7 @@ def get_fence(type):
 
     # --- 抓主表 ---
     cur.execute(f"""
-        SELECT gate_id AS id, gate_name AS name, direction
+        SELECT gate_id AS id, gate_name AS name, direction, polygon_json
         FROM {table}
         WHERE camera_id = %s AND {mode_col} = TRUE
         ORDER BY gate_id;
@@ -138,6 +138,13 @@ def get_fence(type):
 
     for g in items:
         g.update(sched_map.get(g["id"], {"start_time": "--:--", "end_time": "--:--"}))
+        try:
+            poly = json.loads(g["polygon_json"])
+            g["A"] = poly.get("A")
+            g["B"] = poly.get("B")
+        except:
+            g["A"] = [0, 0]
+            g["B"] = [0, 0]
 
     cur.close()
     conn.close()
@@ -156,6 +163,50 @@ def fmt_time(t):
         return f"{h:02d}:{m:02d}"
     return str(t)
 
+@app.route("/api/fence_update/<int:gate_id>", methods=["POST"])
+def fence_update(gate_id):
+    data = request.json
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    try:
+        # 1️⃣ 更新 gates 主表
+        cur.execute("""
+            UPDATE gates
+            SET gate_name=%s,
+                direction=%s,
+                polygon_json=%s
+            WHERE gate_id=%s
+        """, (
+            data["name"],
+            data["direction"],
+            json.dumps({"A": data["A"], "B": data["B"]}),
+            gate_id
+        ))
+
+        # 2️⃣ 更新 func_schedules（時間）
+        cur.execute("""
+            UPDATE func_schedules
+            SET start_time=%s,
+                end_time=%s
+            WHERE gate_id=%s
+        """, (
+            data["start_time"],
+            data["end_time"],
+            gate_id
+        ))
+
+        conn.commit()
+        return jsonify({"status": "ok"})
+
+    except Exception as e:
+        conn.rollback()
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+    finally:
+        cur.close()
+        conn.close()
 @app.route('/api/fence/<string:type>/add', methods=['POST'])
 @app.route('/api/fence/<string:type>/add', methods=['POST'])
 def add_fence(type):
@@ -235,20 +286,35 @@ def add_fence(type):
 
 
 # 更新 / 刪除圍籬
-@app.route('/api/gate_fence/<int:fence_id>', methods=['PUT', 'DELETE'])
-def update_or_delete_fence(fence_id):
-    conn = get_db_connection(); cur = conn.cursor()
-    if request.method == "DELETE":
-        cur.execute("DELETE FROM func_schedules WHERE id=%s;", (fence_id,))
-    else:
-        d = request.json
+@app.route("/api/fence_delete/<int:gate_id>", methods=["POST"])
+def delete_fence(gate_id):
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    try:
+        # 1️⃣ 刪除 schedule（若有）
         cur.execute("""
-            UPDATE func_schedules
-            SET fence_name=%s, direction=%s, start_time=%s, end_time=%s
-            WHERE id=%s;
-        """, (d["name"], d["direction"], d["start_time"], d["end_time"], fence_id))
-    conn.commit(); cur.close(); conn.close()
-    return jsonify({"status": "ok"})
+            DELETE FROM func_schedules
+            WHERE gate_id = %s;
+        """, (gate_id,))
+
+        # 2️⃣ 刪除 gates 主表
+        cur.execute("""
+            DELETE FROM gates
+            WHERE gate_id = %s;
+        """, (gate_id,))
+
+        conn.commit()
+        return jsonify({"status": "ok", "deleted_gate": gate_id})
+
+    except Exception as e:
+        conn.rollback()
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+    finally:
+        cur.close()
+        conn.close()
+
 
 @app.route("/api/mode/<mode>", methods=["POST"])
 def update_mode(mode):

@@ -3,12 +3,22 @@ window.onload = async function () {
   const canvas = document.getElementById("drawCanvas");
   const ctx = canvas.getContext("2d");
 
+  let editingFence = null; // 正在編輯哪個 fence
+  let dragTarget = null;   // "A" or "B"
   let drawing = false;
   let points = [];
   let currentType = null;
 
   const params = new URLSearchParams(window.location.search);
   const cameraId = params.get("id");
+  function applyTimePicker() {
+    flatpickr("input[type='time']", {
+      enableTime: true,
+      noCalendar: true,
+      time_24hr: true,
+      dateFormat: "H:i"
+    });
+  }
 
   /* === 載入相機資料 === */
   async function loadCamera() {
@@ -78,7 +88,7 @@ window.onload = async function () {
     canvas.height = imgStream.clientHeight;
   };
 
-
+  applyTimePicker();
   flatpickr(".time-input", {
     enableTime: true,
     noCalendar: true,
@@ -121,43 +131,110 @@ window.onload = async function () {
     });
   });
 
-  /* === 顯示圍籬列表 === */
+  /* === 畫線 === */
+
+
+  /* === 渲染圍籬列表（已整合 Edit + Move）=== */
   function renderFenceList(fences, type, panel) {
+
+    // 🧹 離開編輯或新增模式 → 清除拖曳相關設定
+    canvas.onmousedown = null;
+    canvas.onmousemove = null;
+    canvas.onmouseup = null;
+    points = [];
+    drawing = false;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
     panel.innerHTML = "";
     const list = document.createElement("div");
 
     if (fences.length === 0) {
       const msg = document.createElement("div");
-      // msg.textContent = "目前尚無圍籬設定。";
+      msg.textContent = "No fence added yet.";
       msg.style.color = "#666";
       msg.style.marginBottom = "8px";
       list.appendChild(msg);
     } else {
       fences.forEach(f => {
         const item = document.createElement("div");
-        item.textContent = `${f.name} (${f.direction}) [${f.start_time}~${f.end_time}]`;
+        item.className = "fence-card";
+        item.innerHTML = `
+        <div class="fence-header">
+          <span class="fence-name">${f.name}</span>
+          <div class="fence-actions">
+            <button class="fence-icon-btn edit-btn" data-id="${f.id}" title="Edit">
+            ✎
+            </button>
+            <button class="fence-icon-btn delete-btn" data-id="${f.id}" title="Delete">
+            🗑︎
+            </button>
+          </div>
+        </div>
+        <div class="fence-meta">
+          <span>${f.direction}</span>
+          ${
+            currentType === "crowd"
+              ? "" 
+              : `<span>${f.start_time} ~ ${f.end_time}</span>`
+          }
+        </div>
+      `;
         list.appendChild(item);
       });
     }
 
+    panel.appendChild(list);
+
     const addBtn = document.createElement("button");
     addBtn.textContent = "+ Add Fence";
+    addBtn.className = "add-fence-btn";
     addBtn.onclick = startDrawing;
-    panel.appendChild(list);
     panel.appendChild(addBtn);
+
+    /* === 綁定 Edit / Delete === */
+    panel.querySelectorAll(".edit-btn").forEach(btn => {
+      btn.onclick = () => beginEditFence(btn.dataset.id, fences, panel);
+    });
+
+    panel.querySelectorAll(".delete-btn").forEach(btn => {
+      btn.onclick = () => deleteFence(btn.dataset.id);
+    });
   }
 
-  /* === 畫線 === */
+  async function deleteFence(id) {
+
+    if (!confirm("Are you sure you want to delete this fence?")) return;
+
+    await fetch(`/api/fence_delete/${id}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" }
+    });
+
+    // 更新 gate 線條（後端重載 config）
+    await fetch(`/api/reload_gates/${cameraId}`, { method: "POST" });
+
+    // 重新載入列表
+    const panel = document.getElementById(`${currentType}_panel`);
+    reloadFenceList(panel);
+
+    console.log("Fence deleted:", id);
+  }
+
+  /* === 開始畫新圍籬 === */
   function startDrawing() {
     points = [];
     canvas.width = imgStream.clientWidth;
     canvas.height = imgStream.clientHeight;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     drawing = true;
+
+    // 🧹 清掉 Edit 模式的拖曳監聽
+    canvas.onmousedown = null;
+    canvas.onmousemove = null;
+    canvas.onmouseup = null
     console.log("開始框選:", currentType);
   }
 
-
+  /* === 畫線（一般新增模式用）=== */
   canvas.addEventListener("click", (e) => {
     if (!drawing) return;
 
@@ -169,21 +246,244 @@ window.onload = async function () {
     if (points.length === 2) {
       drawing = false;
       drawLine(points[0], points[1]);
+      redrawFence();
+      startAddDragMode();
 
-      // 根據 currentType 決定開哪一個表單
+      // 依照類型呼叫不同表單
       if (currentType === "crowd") {
-        openCrowdFenceForm(points);
+        openCrowdFenceForm(points);   // People Counting 專用
       } else {
-        openOnewayForm(points);
+        openAddFenceForm(points);     // 一般 fence（含 Time）
       }
-    } else {
-      // 畫第一個點的黃色標記
-      ctx.fillStyle = "yellow";
-      ctx.beginPath();
-      ctx.arc(x, y, 4, 0, 2 * Math.PI);
-      ctx.fill();
     }
+
   });
+  function openAddFenceForm(points) {
+    const panel = document.getElementById(`${currentType}_panel`);
+
+    panel.innerHTML = `
+    <div class="fence-form">
+      <label>Fence Name</label>
+      <input id="newFenceName" placeholder="Enter fence name">
+
+      <label>Direction</label>
+      <select id="newFenceDir">
+        <option value="AtoB">A → B</option>
+        <option value="BtoA">B → A</option>
+      </select>
+
+      <label>Time</label>
+      <div style="display:flex; gap:6px;">
+        <input id="newStart" type="time" value="09:00">
+        <input id="newEnd" type="time" value="17:00">
+      </div>
+
+      <div class="btn-area">
+        <button class="btn-primary" id="saveNewFenceBtn">Save</button>
+        <button class="btn-secondary" id="cancelNewFenceBtn">Cancel</button>
+      </div>
+    </div>
+  `;
+
+    document.getElementById("saveNewFenceBtn").onclick =
+      () => saveNewFence(points);
+    applyTimePicker();
+
+    document.getElementById("cancelNewFenceBtn").onclick =
+      () => reloadFenceList(panel);
+  }
+  function startAddDragMode() {
+    const videoW = imgStream.clientWidth;
+    const videoH = imgStream.clientHeight;
+
+    canvas.onmousedown = (e) => {
+      const p = getCanvasXY(e);
+      if (dist(p, points[0]) < 15) dragTarget = "A";
+      if (dist(p, points[1]) < 15) dragTarget = "B";
+    };
+
+    canvas.onmousemove = (e) => {
+      if (!dragTarget) return;
+      const p = getCanvasXY(e);
+
+      if (dragTarget === "A") points[0] = [p.x, p.y];
+      if (dragTarget === "B") points[1] = [p.x, p.y];
+
+      redrawFence();
+    };
+
+    canvas.onmouseup = () => {
+      dragTarget = null;
+    };
+  }
+  /* === 開始編輯模式 === */
+  function beginEditFence(id, fences, panel) {
+    const f = fences.find(x => x.id == id);
+    if (!f) return;
+
+    editingFence = f;
+
+    panel.innerHTML = `
+    <div class="fence-form">
+
+      <label>Fence Name</label>
+      <input id="editName" value="${f.name}">
+
+      <label>Direction</label>
+      <select id="editDir">
+        <option value="AtoB" ${f.direction === "AtoB" ? "selected" : ""}>A → B</option>
+        <option value="BtoA" ${f.direction === "BtoA" ? "selected" : ""}>B → A</option>
+      </select>
+
+      <label>Time</label>
+      <div style="display:flex; gap:10px;">
+        <input id="editStart" type="time" value="${f.start_time}">
+        <input id="editEnd" type="time" value="${f.end_time}">
+      </div>
+
+      <div class="btn-area">
+        <button id="saveEditBtn" class="btn-primary">Save</button>
+        <button id="cancelEditBtn" class="btn-secondary">Cancel</button>
+      </div>
+
+    </div>
+  `;
+
+    document.getElementById("saveEditBtn").onclick =
+      () => saveEditedFence(id, panel);
+
+    document.getElementById("cancelEditBtn").onclick =
+      () => reloadFenceList(panel);
+
+    startDragModeForFence(f);
+    applyTimePicker();
+  }
+
+
+  /* === 重載列表 === */
+  async function reloadFenceList(panel) {
+    const r = await fetch(`/api/fence/${currentType}?camera_id=${cameraId}`);
+    const data = await r.json();
+    renderFenceList(data, currentType, panel);
+  }
+
+  /* === 拖曳模式 === */
+  function startDragModeForFence(f) {
+    const videoW = imgStream.clientWidth;
+    const videoH = imgStream.clientHeight;
+
+    // 相對 → 絕對座標
+    points = [
+      [f.A[0] * videoW, f.A[1] * videoH],
+      [f.B[0] * videoW, f.B[1] * videoH]
+    ];
+
+    redrawFence();
+
+    canvas.onmousedown = (e) => {
+      const p = getCanvasXY(e);
+      if (dist(p, points[0]) < 15) dragTarget = "A";
+      if (dist(p, points[1]) < 15) dragTarget = "B";
+    };
+
+    canvas.onmousemove = (e) => {
+      if (!dragTarget) return;
+
+      const p = getCanvasXY(e);
+      if (dragTarget === "A") points[0] = [p.x, p.y];
+      if (dragTarget === "B") points[1] = [p.x, p.y];
+
+      redrawFence();
+    };
+
+    canvas.onmouseup = () => { dragTarget = null; };
+  }
+
+  /* === 工具函式 === */
+  function getCanvasXY(e) {
+    const r = canvas.getBoundingClientRect();
+    return { x: e.clientX - r.left, y: e.clientY - r.top };
+  }
+  function dist(p, q) {
+    return Math.sqrt((p.x - q[0]) ** 2 + (p.y - q[1]) ** 2);
+  }
+
+  function redrawFence() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    drawLine(points[0], points[1]);
+
+    // 畫控制點
+    drawHandle(points[0]);
+    drawHandle(points[1]);
+  }
+
+  function drawHandle(pt) {
+    ctx.fillStyle = "yellow";
+    ctx.beginPath();
+    ctx.arc(pt[0], pt[1], 6, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  async function saveNewFence() {
+    const videoW = imgStream.clientWidth;
+    const videoH = imgStream.clientHeight;
+
+    const normA = [points[0][0] / videoW, points[0][1] / videoH];
+    const normB = [points[1][0] / videoW, points[1][1] / videoH];
+
+    const payload = {
+      camera_id: cameraId,
+      name: document.getElementById("newFenceName").value,
+      direction: document.getElementById("newFenceDir").value,
+      start_time: document.getElementById("newStart").value,
+      end_time: document.getElementById("newEnd").value,
+      point_a: normA,
+      point_b: normB
+    };
+
+    await fetch(`/api/fence/${currentType}/add`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    await fetch(`/api/reload_gates/${cameraId}`, { method: "POST" });
+
+    // 清畫面
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // 重載列表
+    const panel = document.getElementById(`${currentType}_panel`);
+    reloadFenceList(panel);
+  }
+
+  /* === Save 時一次更新：Name + Direction + Time + A/B 座標 === */
+  async function saveEditedFence(id, panel) {
+    const videoW = imgStream.clientWidth;
+    const videoH = imgStream.clientHeight;
+
+    const newA = [points[0][0] / videoW, points[0][1] / videoH];
+    const newB = [points[1][0] / videoW, points[1][1] / videoH];
+
+    const payload = {
+      name: document.getElementById("editName").value,
+      direction: document.getElementById("editDir").value,
+      start_time: document.getElementById("editStart").value,
+      end_time: document.getElementById("editEnd").value,
+      A: newA,
+      B: newB
+    };
+
+    await fetch(`/api/fence_update/${id}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+
+    await fetch(`/api/reload_gates/${cameraId}`, { method: "POST" });
+
+    reloadFenceList(panel);
+  }
+
 
   /* === 畫線 + A/B 標示 === */
   function drawLine(p1, p2) {
@@ -237,10 +537,11 @@ window.onload = async function () {
   /* === People Counting 專用新增表單 === */
   function openCrowdFenceForm(points) {
     const panel = document.getElementById("crowd_panel");
+
     panel.innerHTML = `
     <div class="fence-form">
       <label>Fence Name</label>
-      <input id="newCrowdName" placeholder="Enter name">
+      <input id="newCrowdName" placeholder="Enter fence name">
 
       <label>Direction</label>
       <select id="newCrowdDir">
@@ -248,11 +549,20 @@ window.onload = async function () {
         <option value="BtoA">B → A</option>
       </select>
 
-      <button id="saveCrowdFenceBtn">儲存</button>
+      <div class="btn-area">
+        <button id="saveCrowdFenceBtn" class="btn-primary">Save</button>
+        <button id="cancelCrowdFenceBtn" class="btn-secondary">Cancel</button>
+      </div>
     </div>
   `;
-    document.getElementById("saveCrowdFenceBtn").onclick = () => saveCrowdFence(points);
+
+    document.getElementById("saveCrowdFenceBtn").onclick =
+      () => saveCrowdFence(points);
+
+    document.getElementById("cancelCrowdFenceBtn").onclick =
+      () => reloadFenceList(panel);
   }
+
 
 
   // === 更新時間排程到後端 ===
