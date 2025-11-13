@@ -89,13 +89,19 @@ class EventBus:
                 "events": list(self.last_events[camera_id])
             }
     def ensure_person_count_init(self, camera_id, gate_ids=None):
-        """確保即使剛啟動也有初始統計結構"""
         with self.lock:
+            # 初始化總量
             _ = self.person_count[camera_id]
-            gates = self.gate_counts[camera_id]
-            if gate_ids:
-                for gid in gate_ids:
-                    _ = gates[gid]  # 觸發 defaultdict 建立 {"in":0, "out":0}
+
+            # 刪除不存在的 gate
+            current = self.gate_counts[camera_id]
+            to_delete = [gid for gid in current.keys() if gid not in gate_ids]
+            for gid in to_delete:
+                del current[gid]
+
+            # 新增新 gate
+            for gid in gate_ids:
+                _ = current[gid]   # defaultdict → 自動建立 {"in":0,"out":0}
 
 # 🔸 全域唯一 EventBus 實例
 event_bus = EventBus()

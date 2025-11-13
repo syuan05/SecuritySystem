@@ -78,4 +78,5 @@ class ModuleManager:
             elif isinstance(mod_results, (np.ndarray)) and len(results) == 0:
                 drawn = mod_results
         gates = [g for g in gates if g.get("camera_id") == self.camera_id]
-        return self.drawer.draw(drawn, self.camera_id, results, gates)
+        gate_name_map = {g["id"]: g["name"] for g in gates}
+        return self.drawer.draw(drawn, self.camera_id, results, gates, gate_name_map)

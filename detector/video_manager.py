@@ -76,9 +76,10 @@ class VideoManager:
             print(f"[WARN] Reload skipped: camera {camera_id} not found.")
             return
 
+        # 正確取得 modules
         modules = worker_bundle["modules"]
 
-        # ✅ 不再強制重建 module_manager，直接讓現有模組 reload
+        # === 重新載入每個模組 ===
         reloaded = 0
         for m in modules.modules:
             if hasattr(m, "reload_gates"):
@@ -86,11 +87,24 @@ class VideoManager:
                     m.reload_gates()
                     reloaded += 1
                 except Exception as e:
-                    print(f"[ERROR] Reload gates failed for camera {camera_id}: {e}")
+                    print(f"[ERROR] Reload gates failed for module in camera {camera_id}: {e}")
 
         print(f"[RELOAD] Camera {camera_id}: {reloaded} modules reloaded.")
 
-        # ✅ 立即刷新畫面一次
+        # === 收集所有 gate IDs (人流 + inout) ===
+        person_gate_ids = []
+        for m in modules.modules:
+            if m.__class__.__name__ == "PersonCountModule":
+                if hasattr(m, "gates"):
+                    person_gate_ids.extend([g["id"] for g in m.gates])
+        # === 初始化 event_bus 統計（確保左上面板更新） ===
+        try:
+            from detector.event_bus import event_bus
+            event_bus.ensure_person_count_init(camera_id, person_gate_ids)
+        except Exception as e:
+            print(f"[ERROR] ensure_person_count_init failed for camera {camera_id}: {e}")
+
+        # === 立即刷新畫面 ===
         try:
             video_worker = worker_bundle["video"]
             frame = video_worker.get_frame()
@@ -98,6 +112,7 @@ class VideoManager:
                 from detector.drawer import Drawer
                 drawer = Drawer()
 
+                # 全部線條（inout + person_count）
                 all_gates = []
                 for m in modules.modules:
                     if hasattr(m, "gates"):
@@ -110,6 +125,7 @@ class VideoManager:
                 print(f"[REFRESH] Camera {camera_id}: gates redrawn after reload.")
             else:
                 print(f"[WARN] No frame available for camera {camera_id}, skip refresh.")
+
         except Exception as e:
             import traceback
             print(f"[ERROR] Failed to refresh frame for camera {camera_id}: {e}")
