@@ -10,6 +10,7 @@ class VideoWorker:
         self.running = True
         self.lock = threading.Lock()
         self.callback = None  # 模組分析回呼（會回傳已繪製的 frame）
+        self.frame_counter = 0 
 
     # 啟動讀取執行緒
     def start(self):

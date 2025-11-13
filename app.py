@@ -58,9 +58,13 @@ def get_camera(camera_id):
     cur = conn.cursor(dictionary=True)
 
     cur.execute("""
-        SELECT camera_id, camera_name, camera_url,
-               falling_detection_mode, climbing_detection_mode
-        FROM cameras WHERE camera_id = %s;
+        SELECT 
+            camera_id,
+            camera_name,
+            location,     -- ⭐ 你資料庫的欄位（若名稱不同要改這裡）
+            camera_url           -- ⭐ RTSP URL 欄位
+        FROM cameras
+        WHERE camera_id = %s;
     """, (camera_id,))
     cam = cur.fetchone()
     if not cam:
@@ -546,6 +550,40 @@ def start_detection_system():
         print("✅ Detection system started successfully.")
     except Exception as e:
         print(f"❌ Detection system startup failed: {e}")
+@app.route("/api/camera/update", methods=["POST"])
+def update_camera():
+    data = request.json
+    camera_id = data.get("id")
+    name = data.get("name")
+    location = data.get("location")
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    print("🛠 Updating camera:", camera_id, name, location)
+
+    try:
+        cur.execute("""
+            UPDATE cameras
+            SET camera_name = %s,
+                location = %s
+            WHERE camera_id = %s;
+        """, (name, location, camera_id))
+
+        conn.commit()
+
+        return jsonify({"status": "ok", "message": "Camera info updated!"})
+
+    except Exception as e:
+        conn.rollback()
+        print("❌ Update error:", e)
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+    finally:
+        cur.close()
+        conn.close()
+
+
 
 
 if __name__ == "__main__":

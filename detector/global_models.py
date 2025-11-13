@@ -3,11 +3,20 @@ from ultralytics import YOLO
 import types
 import ultralytics.nn.autobackend as autobackend
 import threading
+import torch
+
 pose_model_lock = threading.Lock()
 print("[INIT] Loading YOLOv11 pose model (shared, safe mode)...")
 
 # ============================================================
-# 🔸 1️⃣ 全域覆寫 AutoBackend.__init__ 以禁用 fuse()
+# 🔸 1️⃣ GPU / CPU 自動偵測
+# ============================================================
+USE_CUDA = torch.cuda.is_available()
+DEVICE = "cuda:0" if USE_CUDA else "cpu"
+print(f"[DEVICE] CUDA available: {USE_CUDA}, using device: {DEVICE}")
+
+# ============================================================
+# 🔸 2️⃣ 全域覆寫 AutoBackend.__init__ 以禁用 fuse()
 # ============================================================
 _old_init = autobackend.AutoBackend.__init__
 
@@ -17,7 +26,6 @@ def _safe_init(self, *args, **kwargs):
     避免多執行緒同時 fuse() 時觸發 AttributeError: bn。
     """
     try:
-        # 在 kwargs 中偵測 verbose 或 model 並改寫成安全版本
         if "model" in kwargs and hasattr(kwargs["model"], "fuse"):
             kwargs["model"].fuse = lambda *a, **kw: kwargs["model"]
         _old_init(self, *args, **kwargs)
@@ -29,9 +37,19 @@ def _safe_init(self, *args, **kwargs):
 
 autobackend.AutoBackend.__init__ = _safe_init
 
+
 # ============================================================
-# 🔸 2️⃣ 建立 YOLO 模型（不會再 fuse）
+# 🔸 3️⃣ 建立 YOLO 模型 + 強制移動到 GPU（可 fallback）
 # ============================================================
-pose_model = YOLO("models/yolo11n-pose.pt")
+try:
+    pose_model = YOLO("models/yolo11n-pose.pt")
+    pose_model.to(DEVICE)     # ⭐ 強制指定 GPU / CPU
+    print(f"[INIT] YOLOv11 pose model loaded on: {pose_model.device}")
+
+except Exception as e:
+    print(f"[ERROR] Failed to load YOLO on GPU, fallback to CPU: {e}")
+    pose_model = YOLO("models/yolo11n-pose.pt")
+    pose_model.to("cpu")
+    print(f"[INIT] YOLOv11 pose model fallback device: {pose_model.device}")
 
 print("[INIT] YOLOv11 pose model loaded successfully (safe mode).")

@@ -1,17 +1,16 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <title>Camera View - Security System</title>
 
-  <!-- 共用全站樣式 -->
+  <!-- 全站樣式 -->
   <link rel="stylesheet" href="{{ url_for('static', filename='global.css') }}">
-  <!-- 此頁專用樣式 -->
   <link rel="stylesheet" href="{{ url_for('static', filename='camera.css') }}">
 </head>
 
 <body>
-  <!-- ===== Header ===== -->
   <header>
     <div class="nav-left">
       <h1>Security System</h1>
@@ -22,82 +21,115 @@
       <a href="{{ url_for('analytics') }}" class="nav-link">Analytics</a>
     </div>
   </header>
-  <h2 id="cameraTitle" style="margin: 20px 30px 0; color: #1e293b;"></h2>
-  <!-- ===== 主體布局 ===== -->
+
+  <h2 id="cameraTitle" style="margin: 20px 30px 0; color:#1e293b;"></h2>
+
   <main class="camera-layout fade-in">
 
-    <!-- ===== 左側設定面板 ===== -->
+    <!-- ========== 左側分頁設定區 ========== -->
     <section class="left-panel">
-      <h2>Camera Settings</h2>
 
-      <!-- Climbing -->
-      <div class="setting-card">
-        <div class="setting-row">
-          <span class="setting-label">Climbing</span>
-          <label class="switch">
-            <input id="climb-switch" type="checkbox">
-            <span class="slider"></span>
-          </label>
-        </div>
-        <div class="setting-btn">
-          <div id="climb-time" class="time-link">[--:-- ~ --:--]</div>
-        </div>
+      <!-- Tabs -->
+      <div class="flat-tabs">
+        <span id="tab-info" class="flat-tab active" onclick="switchTab('info')">
+          Camera Info
+        </span>
+        <span id="tab-functions" class="flat-tab" onclick="switchTab('functions')">
+          Function Settings
+        </span>
       </div>
 
-      <!-- Falling -->
-      <div class="setting-card">
-        <div class="setting-row">
-          <span class="setting-label">Falling</span>
-          <label class="switch">
-            <input id="fall-switch" type="checkbox">
-            <span class="slider"></span>
-          </label>
+      <!-- Panel 1: Camera Info -->
+      <div id="panel-info" class="tab-panel">
+        <div class="setting-card">
+          <label>Camera Name</label>
+          <input id="cam-name">
         </div>
-        <div class="setting-btn">
-          <div id="fall-time" class="time-link">[--:-- ~ --:--]</div>
+
+        <div class="setting-card">
+          <label>Location</label>
+          <input id="cam-location">
         </div>
+        <button class="btn-primary" onclick="saveCameraInfo()">Save Info</button>
       </div>
 
-      <!-- One-Way Violation -->
-      <div class="setting-card">
-        <div class="setting-row">
-          <span class="setting-label">One-Way Violation</span>
-          <a data-type="inout" class="btn-sm fence-btn">+ Edit Fence</a>
-        </div>
-        <div id="inout_panel" class="fence-panel hidden"></div>
-      </div>
+      <!-- ========== Function Settings Tab ========== -->
+      <div id="panel-functions" class="tab-panel hidden">
 
-      <!-- Distance-Based Alert -->
-      <div class="setting-card">
-        <div class="setting-row">
-          <span class="setting-label">Distance-Based Alert</span>
-          <a data-type="intrusion" class="btn-sm fence-btn">+ Edit Fence</a>
+        <!-- Climbing -->
+        <div class="setting-card">
+          <div class="setting-row">
+            <span class="setting-label">Climbing</span>
+            <label class="switch">
+              <input id="climb-switch" type="checkbox">
+              <span class="slider"></span>
+            </label>
+          </div>
+          <div class="setting-btn">
+            <div id="climb-time" class="time-link">[--:-- ~ --:--]</div>
+          </div>
         </div>
-        <div id="intrusion_panel" class="fence-panel hidden"></div>
-      </div>
 
-      <!-- People Counting -->
-      <div class="setting-card">
-        <div class="setting-row">
-          <span class="setting-label">People Counting</span>
-          <a data-type="crowd" class="btn-sm fence-btn">+ Edit Fence</a>
+        <!-- Falling -->
+        <div class="setting-card">
+          <div class="setting-row">
+            <span class="setting-label">Falling</span>
+            <label class="switch">
+              <input id="fall-switch" type="checkbox">
+              <span class="slider"></span>
+            </label>
+          </div>
+          <div class="setting-btn">
+            <div id="fall-time" class="time-link">[--:-- ~ --:--]</div>
+          </div>
         </div>
-        <div id="crowd_panel" class="fence-panel hidden"></div>
-      </div>
 
+        <!-- One-way -->
+        <div class="setting-card">
+          <div class="setting-row">
+            <span class="setting-label">One-Way Violation</span>
+            <a data-type="inout" class="btn-sm fence-btn">+ Edit Fence</a>
+          </div>
+          <div id="inout_panel" class="fence-panel hidden"></div>
+        </div>
+
+        <!-- Distance -->
+        <div class="setting-card">
+          <div class="setting-row">
+            <span class="setting-label">Distance-Based Alert</span>
+            <a data-type="intrusion" class="btn-sm fence-btn">+ Edit Fence</a>
+          </div>
+          <div id="intrusion_panel" class="fence-panel hidden"></div>
+        </div>
+
+        <!-- People Counting -->
+        <div class="setting-card">
+          <div class="setting-row">
+            <span class="setting-label">People Counting</span>
+            <a data-type="crowd" class="btn-sm fence-btn">+ Edit Fence</a>
+          </div>
+          <div id="crowd_panel" class="fence-panel hidden"></div>
+        </div>
+
+      </div>
     </section>
 
-    <!-- ===== 右側影片區 ===== -->
+    <!-- ========== 右側影像區 ========== -->
     <section class="video-panel">
       <div class="video-container fade-in">
-        <img id="videoStream" src="" alt="Camera Stream" class="video-stream">
+        <img id="videoStream" src="" class="video-stream">
         <canvas id="drawCanvas"></canvas>
       </div>
     </section>
+
   </main>
 
+  <!-- JS -->
   <script type="module" src="{{ url_for('static', filename='camera.js') }}"></script>
   <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+
+
 </body>
+
 </html>

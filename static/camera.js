@@ -1,3 +1,4 @@
+let cameraId = null;
 window.onload = async function () {
   const imgStream = document.getElementById("videoStream");
   const canvas = document.getElementById("drawCanvas");
@@ -10,7 +11,7 @@ window.onload = async function () {
   let currentType = null;
 
   const params = new URLSearchParams(window.location.search);
-  const cameraId = params.get("id");
+  cameraId = params.get("id");
   function applyTimePicker() {
     flatpickr("input[type='time']", {
       enableTime: true,
@@ -36,6 +37,9 @@ window.onload = async function () {
     document.getElementById("cameraTitle").textContent = data.camera_name;
     imgStream.src = `/video_feed/${cameraId}`;
 
+    document.getElementById("cam-name").value = data.camera_name || "";
+    document.getElementById("cam-location").value = data.location || "";
+    document.getElementById("cameraTitle").textContent = data.name;
     // === 綁定開關 ===
     const climbSwitch = document.getElementById("climb-switch");
     const fallSwitch = document.getElementById("fall-switch");
@@ -171,10 +175,9 @@ window.onload = async function () {
         </div>
         <div class="fence-meta">
           <span>${f.direction}</span>
-          ${
-            currentType === "crowd"
-              ? "" 
-              : `<span>${f.start_time} ~ ${f.end_time}</span>`
+          ${currentType === "crowd"
+            ? ""
+            : `<span>${f.start_time} ~ ${f.end_time}</span>`
           }
         </div>
       `;
@@ -734,4 +737,40 @@ window.onload = async function () {
   //   time_24hr: true,
   // });
 };
+window.switchTab = function (tab) {
+  const info = document.getElementById("panel-info");
+  const func = document.getElementById("panel-functions");
 
+  const t1 = document.getElementById("tab-info");
+  const t2 = document.getElementById("tab-functions");
+
+  if (tab === "info") {
+    info.classList.remove("hidden");
+    func.classList.add("hidden");
+
+    t1.classList.add("active");
+    t2.classList.remove("active");
+  } else {
+    func.classList.remove("hidden");
+    info.classList.add("hidden");
+
+    t2.classList.add("active");
+    t1.classList.remove("active");
+  }
+}
+
+window.saveCameraInfo = async function () {
+  const payload = {
+    id: cameraId,
+    name: document.getElementById("cam-name").value,
+    location: document.getElementById("cam-location").value
+  };
+
+  await fetch("/api/camera/update", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  });
+  document.getElementById("cameraTitle").textContent = name;
+  alert("Camera info updated!");
+};
