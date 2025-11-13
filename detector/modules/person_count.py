@@ -85,6 +85,7 @@ class PersonCountModule(DetectorBase):
                 "a": (int(coords["A"][0] * frame_w), int(coords["A"][1] * frame_h)),
                 "b": (int(coords["B"][0] * frame_w), int(coords["B"][1] * frame_h)),
                 "in_dir": in_dir,
+                "type": "person"
             })
             print(f"[LOAD] Gate {g['gate_name']} dir={in_dir} ({g['in_direction']})")
         cur.close(); conn.close()
@@ -161,7 +162,6 @@ class PersonCountModule(DetectorBase):
                     level = "heavy"  # 固定全時啟用
 
                     # --- 更新 event bus / 統計 ---
-                    event_bus.mark_gate_alert(self.camera_id, g["id"])
                     event_bus.update_person_count(self.camera_id, g["id"], cross_dir)
 
                     # --- 寫入資料庫 ---

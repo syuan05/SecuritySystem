@@ -23,18 +23,11 @@ class EventBus:
     # 🔹 InOut 警報事件（紅線閃爍）
     # ======================================================
     def mark_gate_alert(self, camera_id, gate_id, level="light"):
-        # if camera_id is None:
-        #     print(f"[WARN] Skip alert: gate {gate_id} missing camera_id")
-        #     return
-        # with self.lock:
-        #     now = time.time()
-        #     color = (0, 0, 255) if level == "heavy" else (0, 255, 255)
         with self.lock:
             now = time.time()
-            color = (0, 0, 255)
             self.gate_status[camera_id][gate_id] = {
-                "color": color,
-                "timestamp": now
+                "color": (0, 0, 255),     # 紅色
+                "flash_until": now + 2,   # 🔥 2秒後清除
             }
 
     # ======================================================
@@ -78,8 +71,17 @@ class EventBus:
     # ======================================================
     def get_state(self, camera_id):
         with self.lock:
+            gates = {}
+            now = time.time()
+
+            # 自動復原超時閃爍
+            for gid, info in self.gate_status[camera_id].items():
+                if info.get("flash_until", 0) < now:
+                    gates[gid] = {"color": (0, 255, 0)}   # 綠色
+                else:
+                    gates[gid] = {"color": info.get("color", (0, 255, 0))}
             return {
-                "gates": dict(self.gate_status[camera_id]),
+                "gates": gates,
                 "person_total": dict(self.person_count[camera_id]),
                 "gate_counts": {
                     gid: dict(v) for gid, v in self.gate_counts[camera_id].items()

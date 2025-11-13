@@ -39,7 +39,15 @@ class Drawer:
                     skipped_count += 1
                     continue
 
-                color = state["gates"].get(g["id"], {}).get("color", (0, 168, 255))
+                gate_type = g.get("type", "inout")
+
+                if gate_type == "person":
+                    default_color = (0, 168, 255)   # 🟡 黃色
+
+                else:
+                    default_color = (0, 255, 0)     # 🟢 綠色
+
+                color = state["gates"].get(g["id"], {}).get("color", default_color)
                 cv2.line(frame, g["a"], g["b"], color, 3)
                 mid = ((g["a"][0] + g["b"][0]) // 2, (g["a"][1] + g["b"][1]) // 2)
                 cv2.putText(frame, g["name"], mid, cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 2)

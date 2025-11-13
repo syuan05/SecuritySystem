@@ -102,7 +102,8 @@ class InOutModule(DetectorBase):
                 "b": (int(coords["B"][0] * frame_w), int(coords["B"][1] * frame_h)),
                 "in_dir": in_dir,
                 "start": self._format_time(g["start_time"], "00:00:00"),
-                "end": self._format_time(g["end_time"], "23:59:59")
+                "end": self._format_time(g["end_time"], "23:59:59"),
+                "type": "inout"
             })
             print(f"[LOAD] Gate {g['gate_name']} dir={in_dir} ({g['in_direction']})")
         cur.close(); conn.close()
