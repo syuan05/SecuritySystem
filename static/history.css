@@ -106,3 +106,88 @@ td.light {
   padding: 20px;
   font-style: italic;
 }
+
+.level-tag {
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-weight: 600;
+  display: inline-block;
+}
+
+.level-heavy {
+  background: #dc2626;
+  color: white;
+}
+
+.level-medium {
+  background: #fbbf24;
+  color: #78350f;
+}
+
+.level-light {
+  background: #bbf7d0;
+  color: #166534;
+}
+/* ===== 分頁列美化 ===== */
+ /* ===== 分頁列：無卡片版 ===== */
+.table-controls {
+  margin-top: 16px;
+  padding: 8px 4px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: transparent;   /* 無背景 */
+  box-shadow: none;          /* 無陰影 */
+  border-radius: 0;          /* 無圓角 */
+} 
+
+.table-controls label {
+  font-weight: 600;
+  color: var(--text-dark);
+  margin-right: 6px;
+}
+
+.table-controls select {
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid #cfd6e1;
+  background: #f7f9fc;
+  font-size: 14px;
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+#pageInfo {
+  color: #4a5568;
+  font-weight: 600;
+  min-width: 80px;
+  text-align: center;
+}
+
+/* 更漂亮的按鈕 */
+.btn.small {
+  padding: 6px 14px;
+  border-radius: 8px;
+  background: #38a3fa;
+  font-size: 14px;
+  color: white;
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.15s;
+}
+
+.btn.small:hover {
+  background: #1d8ce0;
+  transform: translateY(-2px);
+}
+
+.btn.small:disabled {
+  background: #aacbe5;
+  cursor: default;
+  transform: none;
+}
+

@@ -50,12 +50,37 @@
           <label>Location</label>
           <input id="cam-location">
         </div>
-        <button class="btn-primary" onclick="saveCameraInfo()">Save Info</button>
+        <button class="btn-outline" onclick="saveCameraInfo()">Save</button>
       </div>
 
       <!-- ========== Function Settings Tab ========== -->
       <div id="panel-functions" class="tab-panel hidden">
+        <!-- One-way -->
+        <div class="setting-card">
+          <div class="setting-row">
+            <span class="setting-label">One-Way Violation</span>
+            <a data-type="inout" class="btn-sm fence-btn">✎ Edit</a>
+          </div>
+          <div id="inout_panel" class="fence-panel hidden"></div>
+        </div>
 
+        <!-- Distance -->
+        <div class="setting-card">
+          <div class="setting-row">
+            <span class="setting-label">Distance-Based Alert</span>
+            <a data-type="intrusion" class="btn-sm fence-btn">✎ Edit</a>
+          </div>
+          <div id="intrusion_panel" class="fence-panel hidden"></div>
+        </div>
+
+        <!-- People Counting -->
+        <div class="setting-card">
+          <div class="setting-row">
+            <span class="setting-label">People Counting</span>
+            <a data-type="crowd" class="btn-sm fence-btn">✎ Edit</a>
+          </div>
+          <div id="crowd_panel" class="fence-panel hidden"></div>
+        </div>
         <!-- Climbing -->
         <div class="setting-card">
           <div class="setting-row">
@@ -83,34 +108,6 @@
             <div id="fall-time" class="time-link">[--:-- ~ --:--]</div>
           </div>
         </div>
-
-        <!-- One-way -->
-        <div class="setting-card">
-          <div class="setting-row">
-            <span class="setting-label">One-Way Violation</span>
-            <a data-type="inout" class="btn-sm fence-btn">+ Edit Fence</a>
-          </div>
-          <div id="inout_panel" class="fence-panel hidden"></div>
-        </div>
-
-        <!-- Distance -->
-        <div class="setting-card">
-          <div class="setting-row">
-            <span class="setting-label">Distance-Based Alert</span>
-            <a data-type="intrusion" class="btn-sm fence-btn">+ Edit Fence</a>
-          </div>
-          <div id="intrusion_panel" class="fence-panel hidden"></div>
-        </div>
-
-        <!-- People Counting -->
-        <div class="setting-card">
-          <div class="setting-row">
-            <span class="setting-label">People Counting</span>
-            <a data-type="crowd" class="btn-sm fence-btn">+ Edit Fence</a>
-          </div>
-          <div id="crowd_panel" class="fence-panel hidden"></div>
-        </div>
-
       </div>
     </section>
 
@@ -119,6 +116,18 @@
       <div class="video-container fade-in">
         <img id="videoStream" src="" class="video-stream">
         <canvas id="drawCanvas"></canvas>
+      </div>
+      <!-- 🟢🟡 圖例在這裡 -->
+      <div class="video-legend">
+        <span class="legend-item">
+          <span class="dot dot-green"></span> One-Way
+        </span>
+
+        <span class="divider">|</span>
+
+        <span class="legend-item">
+          <span class="dot dot-yellow"></span> Counting
+        </span>
       </div>
     </section>
 

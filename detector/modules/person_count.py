@@ -95,7 +95,7 @@ class PersonCountModule(DetectorBase):
     # 🔹 主分析函式
     # =====================================================
     def process_frame(self, frame):
-        COOLDOWN = 0.5
+        COOLDOWN = 2
         MIN_NEAR = 30
         last_evt = {}
         
@@ -175,7 +175,6 @@ class PersonCountModule(DetectorBase):
                         tid=tid,
                         foot=foot
                     )
-                    print("[PC EVT]", evt)
                     event_bus.push_event(self.camera_id, evt)
                     events.append(evt)
 

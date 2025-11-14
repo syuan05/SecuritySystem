@@ -115,8 +115,8 @@ class InOutModule(DetectorBase):
     # =====================================================
     def process_frame(self, frame):
         model = self.model
-        COOLDOWN = 0.5
-        MIN_NEAR = 30
+        COOLDOWN = 2
+        MIN_NEAR = 15
         last_evt = {}
         
         with pose_model_lock:
@@ -185,29 +185,29 @@ class InOutModule(DetectorBase):
                     end_t = datetime.datetime.strptime(g["end"], fmt).time()
                     in_active = (start_t <= now_t <= end_t) if start_t <= end_t else (now_t >= start_t or now_t <= end_t)
                     level = "heavy" if in_active else "light"
-
+                    if is_violation:
                     # 門線閃爍顏色 & 寫事件
-                    event_bus.mark_gate_alert(self.camera_id, g["id"], level)
-                    event_writer.add_event(
-                        camera_id=self.camera_id,
-                        gate_id=g["id"],
-                        event_type="inout",
-                        alert_level=level
-                    )
+                        event_bus.mark_gate_alert(self.camera_id, g["id"], level)
+                        event_writer.add_event(
+                            camera_id=self.camera_id,
+                            gate_id=g["id"],
+                            event_type="inout",
+                            alert_level=level
+                        )
 
-                    # 建立統一事件格式
-                    evt = make_event(
-                        "inout",
-                        camera_id=self.camera_id,
-                        status=level,
-                        gate_id=g["id"],
-                        direction=cross_dir,
-                        violation=is_violation,
-                        tid=tid,
-                        foot=foot
-                    )
-                    event_bus.push_event(self.camera_id, evt)
-                    events.append(evt)
+                        # 建立統一事件格式
+                        evt = make_event(
+                            "inout",
+                            camera_id=self.camera_id,
+                            status=level,
+                            gate_id=g["id"],
+                            direction=cross_dir,
+                            violation=is_violation,
+                            tid=tid,
+                            foot=foot
+                        )
+                        event_bus.push_event(self.camera_id, evt)
+                        events.append(evt)
 
                 rt.last_side[tid] = curr_side
 

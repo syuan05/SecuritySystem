@@ -296,29 +296,39 @@ def delete_fence(gate_id):
     cur = conn.cursor()
 
     try:
-        # 1️⃣ 刪除 schedule（若有）
-        cur.execute("""
-            DELETE FROM func_schedules
-            WHERE gate_id = %s;
-        """, (gate_id,))
+        # 找 camera_id
+        cur.execute("SELECT camera_id FROM gates WHERE gate_id=%s", (gate_id,))
+        row = cur.fetchone()
+        if not row:
+            return jsonify({"status": "error", "message": "Gate not found"}), 404
+        cam_id = row[0]
 
-        # 2️⃣ 刪除 gates 主表
-        cur.execute("""
-            DELETE FROM gates
-            WHERE gate_id = %s;
-        """, (gate_id,))
+        # 先刪 schedule (子表)
+        result1 = cur.execute("""
+            DELETE FROM func_schedules
+            WHERE gate_id=%s AND camera_id=%s
+        """, (gate_id, cam_id))
+        print(f"Deleted {result1} schedules")  # 調試用
+
+        # 再刪 gate (父表)
+        result2 = cur.execute("DELETE FROM gates WHERE gate_id=%s", (gate_id,))
+        print(f"Deleted {result2} gates")  # 調試用
 
         conn.commit()
-        return jsonify({"status": "ok", "deleted_gate": gate_id})
+        return jsonify({
+            "status": "ok",
+            "deleted_schedules": result1,
+            "deleted_gates": result2
+        })
 
     except Exception as e:
         conn.rollback()
+        print(f"Error: {str(e)}")  # 調試用
         return jsonify({"status": "error", "message": str(e)}), 500
 
     finally:
         cur.close()
         conn.close()
-
 
 @app.route("/api/mode/<mode>", methods=["POST"])
 def update_mode(mode):
@@ -462,26 +472,26 @@ def people_hourly():
     camera_id = request.args.get("camera_id", type=int)
     conn = get_db_connection()
     cur = conn.cursor(dictionary=True)
+
     if camera_id:
         cur.execute("""
-            SELECT HOUR(timestamp) AS hour, COUNT(*) AS count
+            SELECT timestamp
             FROM people_flow
-            WHERE timestamp >= NOW() - INTERVAL 24 HOUR
+            WHERE timestamp BETWEEN NOW() - INTERVAL 24 HOUR AND NOW()
               AND camera_id = %s
-            GROUP BY HOUR(timestamp)
-            ORDER BY hour;
+            ORDER BY timestamp;
         """, (camera_id,))
     else:
         cur.execute("""
-            SELECT HOUR(timestamp) AS hour, COUNT(*) AS count
+            SELECT timestamp
             FROM people_flow
-            WHERE timestamp >= NOW() - INTERVAL 24 HOUR
-            GROUP BY HOUR(timestamp)
-            ORDER BY hour;
+            WHERE timestamp BETWEEN NOW() - INTERVAL 24 HOUR AND NOW()
+            ORDER BY timestamp;
         """)
-    data = cur.fetchall()
+    rows = cur.fetchall()
     cur.close(); conn.close()
-    return jsonify(data)
+
+    return jsonify(rows)
 
 
 # 🔹 近一週

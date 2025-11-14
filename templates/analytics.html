@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <title>Analytics - Security System</title>
@@ -58,16 +59,34 @@
         <h3>Custom Time Range</h3>
         <div class="time-filter">
           <label>Start:</label>
-          <input type="time" id="startTime" value="09:00">
+          <input type="text" id="startTime" value="09:00">
           <label>End:</label>
-          <input type="time" id="endTime" value="18:00">
+          <input type="text" id="endTime" value="18:00">
           <button id="filterBtn" class="btn">Apply</button>
         </div>
       </div>
       <canvas id="customChart"></canvas>
     </section>
   </main>
-
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
   <script src="{{ url_for('static', filename='analytics.js') }}"></script>
+
+  <script>
+    flatpickr("#startTime", {
+      enableTime: true,
+      noCalendar: true,
+      dateFormat: "H:i",
+      time_24hr: true
+    });
+
+    flatpickr("#endTime", {
+      enableTime: true,
+      noCalendar: true,
+      dateFormat: "H:i",
+      time_24hr: true
+    });
+  </script>
 </body>
+
 </html>

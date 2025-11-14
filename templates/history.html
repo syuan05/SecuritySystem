@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <title>Event History - Security System</title>
@@ -8,6 +9,7 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='global.css') }}">
   <!-- 此頁專用 -->
   <link rel="stylesheet" href="{{ url_for('static', filename='history.css') }}">
+
 </head>
 
 <body>
@@ -31,20 +33,22 @@
     <section class="filter-bar card">
       <div class="filter-group">
         <label>Start Date:</label>
-        <input type="date" id="startDate">
+        <input type="date" id="startDate" lang="en">
       </div>
       <div class="filter-group">
         <label>End Date:</label>
-        <input type="date" id="endDate">
+        <input type="date" id="endDate" lang="en">
       </div>
       <div class="filter-group">
         <label>Type:</label>
         <select id="typeSelect">
           <option value="">All</option>
-          <option value="inout_cross">In/Out Crossing</option>
+          <option value="inout">One-way</option>
           <option value="intrusion">Intrusion</option>
-          <option value="crowd">Crowd</option>
+          <option value="climbing">Climbing</option>
+          <option value="falling">Falling</option>
         </select>
+
       </div>
       <div class="filter-group">
         <label>Level:</label>
@@ -73,9 +77,34 @@
         </thead>
         <tbody></tbody>
       </table>
+      <div class="table-controls">
+        <select id="rowsPerPage">
+          <option value="10">10</option>
+          <option value="20">20</option>
+          <option value="30" selected>30</option>
+          <option value="50">50</option>
+        </select>
+
+        <div class="pagination">
+          <button id="prevPage" class="btn small">Prev</button>
+          <span id="pageInfo"></span>
+          <button id="nextPage" class="btn small">Next</button>
+        </div>
+      </div>
     </section>
   </main>
-
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
   <script src="{{ url_for('static', filename='history.js') }}"></script>
+  <script>
+    flatpickr("#startDate", {
+      dateFormat: "Y-m-d"
+    });
+
+    flatpickr("#endDate", {
+      dateFormat: "Y-m-d"
+    });
+  </script>
 </body>
+
 </html>

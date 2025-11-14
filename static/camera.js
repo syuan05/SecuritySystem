@@ -282,8 +282,8 @@ window.onload = async function () {
       </div>
 
       <div class="btn-area">
-        <button class="btn-primary" id="saveNewFenceBtn">Save</button>
-        <button class="btn-secondary" id="cancelNewFenceBtn">Cancel</button>
+        <button class="btn btn-primary" id="saveNewFenceBtn">Save</button>
+        <button class="btn btn-secondary" id="cancelNewFenceBtn">Cancel</button>
       </div>
     </div>
   `;
@@ -345,8 +345,8 @@ window.onload = async function () {
       </div>
 
       <div class="btn-area">
-        <button id="saveEditBtn" class="btn-primary">Save</button>
-        <button id="cancelEditBtn" class="btn-secondary">Cancel</button>
+        <button id="saveEditBtn" class="btn btn-primary">Save</button>
+        <button id="cancelEditBtn" class="btn btn-secondary">Cancel</button>
       </div>
 
     </div>
@@ -553,8 +553,8 @@ window.onload = async function () {
       </select>
 
       <div class="btn-area">
-        <button id="saveCrowdFenceBtn" class="btn-primary">Save</button>
-        <button id="cancelCrowdFenceBtn" class="btn-secondary">Cancel</button>
+        <button id="saveCrowdFenceBtn" class="btn btn-primary">Save</button>
+        <button id="cancelCrowdFenceBtn" class="btn btn-secondary">Cancel</button>
       </div>
     </div>
   `;

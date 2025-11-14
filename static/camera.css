@@ -134,6 +134,7 @@
   box-shadow: var(--shadow);
   position: relative;
   overflow: hidden;
+  flex-direction: column;
 }
 
 .video-container {
@@ -426,19 +427,44 @@
 }
 
 /* Fix Save Info button to match your style */
+.btn {
+  padding: 9px 18px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: 0.15s;
+}
+
+/* Primary (Blue Save) */
 .btn-primary {
   background: #0ea5e9;
   color: white;
-  padding: 10px 18px;
-  border-radius: 8px;
-  border: none;
-  font-size: 14px;
-  cursor: pointer;
-  margin-top: 10px;
 }
 
 .btn-primary:hover {
   background: #0284c7;
+  transform: translateY(-1px);
+}
+
+/* Secondary (Gray Cancel) */
+.btn-secondary {
+  background: #e2e8f0;
+  color: #1e293b;
+}
+
+.btn-secondary:hover {
+  background: #cbd5e1;
+  transform: translateY(-1px);
+}
+
+/* Force buttons inside JS-generated forms to align */
+.btn-area {
+  margin-top: 14px;
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
 }
 
 
@@ -450,4 +476,71 @@
   border-radius: 6px;
   margin-top: 6px;
   margin-bottom: 6px;
+}
+
+.video-legend {
+  margin-top: 12px;
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 22px;
+
+  /* 讓它跟影片左邊 EXACT 一樣位置 */
+  width: 90%;
+  /* 跟 video-container 一樣的寬度 */
+  max-width: 900px;
+  /* 跟 video-container 一樣 */
+  padding-left: 3px;
+  /* video-container 的 border-left = 3px */
+
+  color: #e2e8f0;
+  font-size: 17px;
+}
+
+.video-legend .legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 500;
+}
+
+.video-legend .divider {
+  opacity: 0.7;
+}
+
+.dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.dot-green {
+  background-color: #22c55e;
+  /* tailwind green-500 */
+}
+
+.dot-yellow {
+  background-color: #eab308;
+  /* tailwind yellow-500 */
+}
+
+.btn-outline {
+  background: white;
+  border: 1px solid #cfd6e1;
+  color: #1e293b;
+  padding: 6px 16px;   /* 上下變窄 */
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: 0.2s;
+  width: 100%;         /* ⭐ 全寬 → 和 Add Fence 一樣 */
+  text-align: center;
+  display: block;      /* ⭐ 變成整行按鈕 */
+}
+
+.btn-outline:hover {
+  background: #f1f5f9;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.05);
 }

@@ -39,12 +39,33 @@ function loadHourlyChart() {
   fetch(`/api/people/hourly?camera_id=${currentCamera}`)
     .then(res => res.json())
     .then(data => {
-      // 先建立 24 小時的完整列表
-      const fullHours = Array.from({ length: 24 }, (_, i) => i);
-      const hourMap = Object.fromEntries(data.map(d => [d.hour, d.count]));
-      const labels = fullHours.map(h => `${h}:00`);
-      const values = fullHours.map(h => hourMap[h] || 0);
+      // convert timestamp list → hour buckets
+      let now = new Date();
+      let buckets = [];
 
+      for (let i = 23; i >= 0; i--) {
+        let t = new Date(now.getTime() - i * 3600 * 1000);
+        let hour = t.getHours();
+        buckets.push({
+          label: `${hour}:00`,
+          start: t,
+          end: new Date(t.getTime() + 3600 * 1000),
+          count: 0
+        });
+      }
+
+      // count events into correct bucket
+      data.forEach(row => {
+        let ts = new Date(row.timestamp);
+        buckets.forEach(b => {
+          if (ts >= b.start && ts < b.end) {
+            b.count++;
+          }
+        });
+      });
+
+      const labels = buckets.map(b => b.label);
+      const values = buckets.map(b => b.count);
       if (hourlyChart) hourlyChart.destroy();
 
       const ctx = document.getElementById("hourlyChart");
