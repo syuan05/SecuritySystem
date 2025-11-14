@@ -522,35 +522,36 @@ def people_weekly():
     return jsonify(data)
 
 
-# 🔹 自訂時段
 @app.route("/api/people/custom")
 def people_custom():
     start = request.args.get("start", "09:00")
     end = request.args.get("end", "18:00")
     camera_id = request.args.get("camera_id", type=int)
+
     conn = get_db_connection()
     cur = conn.cursor(dictionary=True)
+
+    base_sql = """
+        SELECT DATE(timestamp) AS date, COUNT(*) AS count
+        FROM people_flow
+        WHERE TIME(timestamp) BETWEEN %s AND %s
+          AND timestamp >= CURDATE() - INTERVAL 7 DAY
+    """
+
+    params = [start, end]
+
+    # 若有 camera_id，加入條件
     if camera_id:
-        cur.execute(f"""
-            SELECT DATE(timestamp) AS date, COUNT(*) AS count
-            FROM people_flow
-            WHERE HOUR(timestamp) BETWEEN HOUR(%s) AND HOUR(%s)
-              AND timestamp >= CURDATE() - INTERVAL 7 DAY
-              AND camera_id = %s
-            GROUP BY DATE(timestamp)
-            ORDER BY date;
-        """, (start, end, camera_id))
-    else:
-        cur.execute(f"""
-            SELECT DATE(timestamp) AS date, COUNT(*) AS count
-            FROM people_flow
-            WHERE HOUR(timestamp) BETWEEN HOUR(%s) AND HOUR(%s)
-              AND timestamp >= CURDATE() - INTERVAL 7 DAY
-            GROUP BY DATE(timestamp)
-            ORDER BY date;
-        """, (start, end))
+        base_sql += " AND camera_id = %s"
+        params.append(camera_id)
+
+    base_sql += " GROUP BY DATE(timestamp) ORDER BY date;"
+
+    cur.execute(base_sql, params)
     data = cur.fetchall()
-    cur.close(); conn.close()
+
+    cur.close()
+    conn.close()
     return jsonify(data)
 
 def start_detection_system():
@@ -560,6 +561,7 @@ def start_detection_system():
         print("✅ Detection system started successfully.")
     except Exception as e:
         print(f"❌ Detection system startup failed: {e}")
+
 @app.route("/api/camera/update", methods=["POST"])
 def update_camera():
     data = request.json

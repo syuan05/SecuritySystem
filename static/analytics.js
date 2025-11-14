@@ -95,7 +95,7 @@ function loadHourlyChart() {
               bodyFont: { size: 13 },
               padding: 10,
               cornerRadius: 8,
-              callbacks: { label: ctx => `人數：${ctx.parsed.y}` }
+              callbacks: { label: ctx => `People Count：${ctx.parsed.y}` }
             }
           },
           scales: {
@@ -142,7 +142,7 @@ function loadWeeklyChart() {
             legend: { display: false },
             tooltip: {
               backgroundColor: "rgba(15,23,42,0.9)",
-              callbacks: { label: ctx => `人數：${ctx.parsed.y}` }
+              callbacks: { label: ctx => `People Count：${ctx.parsed.y}` }
             }
           },
           scales: {
@@ -192,7 +192,7 @@ function setupCustomChart() {
               legend: { display: false },
               tooltip: {
                 backgroundColor: "rgba(15,23,42,0.9)",
-                callbacks: { label: ctx => `人數：${ctx.parsed.y}` }
+                callbacks: { label: ctx => `People Count：${ctx.parsed.y}` }
               }
             },
             scales: {
