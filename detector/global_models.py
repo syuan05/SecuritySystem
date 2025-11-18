@@ -42,13 +42,13 @@ autobackend.AutoBackend.__init__ = _safe_init
 # 🔸 3️⃣ 建立 YOLO 模型 + 強制移動到 GPU（可 fallback）
 # ============================================================
 try:
-    pose_model = YOLO("models/yolo11n-pose.pt")
+    pose_model = YOLO("yolo11n-pose")
     pose_model.to(DEVICE)     # ⭐ 強制指定 GPU / CPU
     print(f"[INIT] YOLOv11 pose model loaded on: {pose_model.device}")
 
 except Exception as e:
     print(f"[ERROR] Failed to load YOLO on GPU, fallback to CPU: {e}")
-    pose_model = YOLO("models/yolo11n-pose.pt")
+    pose_model = YOLO("yolo11n-pose")
     pose_model.to("cpu")
     print(f"[INIT] YOLOv11 pose model fallback device: {pose_model.device}")
 
