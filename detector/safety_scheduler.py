@@ -95,7 +95,7 @@ def run_single_safety_analysis(cam):
     cam_id = cam["camera_id"]
     print(f"📸 Running safety analysis for camera {cam_id}")
 
-    frame = manager.get_last_frame(cam_id)
+    frame = manager.get_raw_frame(cam_id)
     if frame is None:
         print(f"⚠ Camera {cam_id} no frame.")
         return

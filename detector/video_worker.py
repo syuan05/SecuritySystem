@@ -11,7 +11,7 @@ class VideoWorker:
         self.lock = threading.Lock()
         self.callback = None  # 模組分析回呼（會回傳已繪製的 frame）
         self.frame_counter = 0
-        
+        self.raw_frame = None
         # ✅ 新增：reload 刷新標記
         self.reload_pending = False
         self.reload_lock = threading.Lock()
@@ -55,6 +55,8 @@ class VideoWorker:
             if not ok or frame is None:
                 cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
                 continue
+            with self.lock:
+                self.raw_frame = frame.copy()
 
             frame = cv2.resize(frame, target_size)
 
@@ -104,6 +106,8 @@ class VideoWorker:
     def get_frame(self):
         with self.lock:
             return None if self.frame is None else self.frame.copy()
-
+    def get_raw_frame(self):
+        with self.lock:
+            return None if self.raw_frame is None else self.raw_frame.copy()
     def stop(self):
         self.running = False

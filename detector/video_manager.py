@@ -59,6 +59,12 @@ class VideoManager:
             return None
         return bundle["video"].get_frame()
 
+    def get_raw_frame(self, camera_id):
+        bundle = self.workers.get(camera_id)
+        if not bundle:
+            return None
+        return bundle["video"].get_raw_frame()   # ← ✔ 正確
+
     # ==========================================================
     # 🔹 熱重載門線設定（更新模組 + 通知刷新）
     # ==========================================================

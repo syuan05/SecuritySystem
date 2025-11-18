@@ -197,3 +197,120 @@ canvas {
   color: #111827 !important;
   border-bottom: 3px solid #3b82f6 !important;
 }
+/* ===== Slide Panel Overlay ===== */
+.panel-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.35);
+  backdrop-filter: blur(2px);
+  z-index: 90;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+
+.panel-overlay.show {
+  opacity: 1;
+}
+
+.hidden {
+  display: none !important;
+}
+
+/* ===== Slide Panel (Right side) ===== */
+.safety-panel {
+  position: fixed;
+  top: 0;
+  right: -450px; /* 初始在畫面外 */
+  width: 450px;
+  height: 100%;
+  background: white;
+  z-index: 100;
+  box-shadow: -4px 0px 12px rgba(0,0,0,0.1);
+  transition: right 0.3s ease;
+  padding: 20px;
+  overflow-y: auto;
+}
+
+.safety-panel.show {
+  right: 0;  /* 滑入 */
+}
+
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.panel-close {
+  font-size: 28px;
+  cursor: pointer;
+}
+
+.panel-img {
+  width: 100%;
+  border-radius: 10px;
+  margin-bottom: 15px;
+}
+
+.panel-content h4 {
+  margin-top: 15px;
+}
+
+.safety-expand {
+  margin-top: 10px;
+  background: #f9fafb;
+  border-radius: 12px;
+  padding: 15px;
+  border-left: 5px solid #3b82f6;
+  animation: slideDown 0.3s ease;
+  width: 100%;
+  margin: 15px 0;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-5px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.safety-expand h4 {
+  margin-top: 15px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #1f2937;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.safety-expand ul {
+  margin: 8px 0 15px 0;
+  padding-left: 20px;
+}
+
+.safety-expand ul li {
+  margin-bottom: 5px;
+  font-size: 14px;
+  color: #374151;
+}
+
+.icon-title {
+  font-size: 18px;
+}
+
+/* 區塊標題 ICON */
+.icon-issue { color:#d64550; }
+.icon-sug   { color:#2563eb; }
+.icon-law   { color:#16a34a; }
+
+.expand-img {
+  width: 100%;
+  max-height: 300px;
+  object-fit: cover;
+  border-radius: 10px;
+  margin-bottom: 15px;
+  box-shadow: var(--shadow);
+}

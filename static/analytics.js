@@ -253,26 +253,106 @@ async function loadSafetyRecords() {
   box.innerHTML = "";
 
   data.forEach(r => {
+    const level = (r.safety_level || "unknown").toLowerCase();
+
     const div = document.createElement("div");
     div.className = "safety-item";
 
     div.innerHTML = `
-      <div class="safety-score ${r.safety_level.toLowerCase()}">
-        ${r.safety_score}
-      </div>
+  <div class="safety-score ${level}">
+    ${r.safety_score ?? "--"}
+  </div>
 
-      <div style="flex:1; padding:0 15px;">
-        <b>${r.camera_name}</b> (${r.location_type})<br>
-        <small>${r.summary}</small><br>
-        <small style="opacity:0.6">${r.created_at}</small>
-      </div>
+  <div style="flex:1; padding:0 15px;">
+    <b>${r.camera_name}</b> (${r.location_type || "Unknown"})<br>
+    <small>${r.summary || ""}</small><br>
+    <small style="opacity:0.6">${r.created_at}</small>
+  </div>
 
-      <a class="safety-btn" href="/safety/${r.id}">View</a>
-    `;
+  <button class="safety-btn">▼</button>
+`;
+
+    div.querySelector(".safety-btn").onclick = () => openSafetyPanel(r, div);
 
     box.appendChild(div);
   });
 }
+function openSafetyPanel(data, parentDiv) {
+  // 若已展開 → 收合
+  const next = parentDiv.nextElementSibling;
+  if (next && next.classList.contains("safety-expand")) {
+    next.remove();
+    return;
+  }
+
+  // 收起其他展開內容
+  document.querySelectorAll(".safety-expand").forEach(el => el.remove());
+
+  // === 安全處理 Issues ===
+  let issues = [];
+  if (Array.isArray(data.issues)) {
+      issues = data.issues;
+  } else if (typeof data.issues === "string") {
+      const s = data.issues.trim();
+      if (s !== "" && s !== "null" && s !== "None") {
+          try {
+              const parsed = JSON.parse(s);
+              if (Array.isArray(parsed)) issues = parsed;
+          } catch {}
+      }
+  }
+
+  // === 安全處理 Suggestions ===
+  let suggestions = [];
+  if (Array.isArray(data.suggestions)) {
+      suggestions = data.suggestions;
+  } else if (typeof data.suggestions === "string") {
+      const s = data.suggestions.trim();
+      if (s !== "" && s !== "null" && s !== "None") {
+          try {
+              const parsed = JSON.parse(s);
+              if (Array.isArray(parsed)) suggestions = parsed;
+              else suggestions = [s];
+          } catch {
+              suggestions = [s];
+          }
+      }
+  }
+
+  // === Create expand div ===
+  const expand = document.createElement("div");
+  expand.className = "safety-expand";
+
+  expand.innerHTML = `
+    <img src="${data.image_url || ""}" class="expand-img">
+
+    <h4><span class="icon-title icon-issue">⚠</span> Safety Issues</h4>
+    <ul>
+      ${issues.map(i => `
+        <li>
+          <b>${i.name}</b> — ${i.description}
+          ${i.law ? `<span style="color:#888;">（${i.law}）</span>` : ""}
+        </li>
+      `).join("")}
+    </ul>
+
+    <h4><span class="icon-title icon-sug">✨</span> Suggestions</h4>
+    <ul>
+      ${suggestions.map(s => `<li>${s}</li>`).join("")}
+    </ul>
+
+    <p style="font-size:13px; opacity:0.6;">Created: ${data.created_at}</p>
+  `;
+
+  parentDiv.after(expand);
+
+  // ⭐ 展開後自動滾動
+  setTimeout(() => {
+    expand.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, 80);
+}
+
+
 
 // 攝影機下拉清單
 document.addEventListener("DOMContentLoaded", async () => {

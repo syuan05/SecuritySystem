@@ -52,8 +52,8 @@ def analyze_image_with_gemini(image_base64, location_type, custom_prompt=""):
 
     # ========= PROMPT 最終版本（強化固定格式，保證返回 JSON） =========
     prompt = f"""
-    你是一位台灣職安與公共安全領域的場域安全專家。
-    請分析此圖片的安全風險，並依照以下「安全程度評分（越安全分數越高）」標準評估。
+    你是一位台灣職安與公共安全領域的專家。
+    請根據圖片內容評估實際可觀察到的安全風險（不可猜測不可虛構），並提供具體的問題與改善建議。
 
     場域類型：{location_type}
 
@@ -61,35 +61,66 @@ def analyze_image_with_gemini(image_base64, location_type, custom_prompt=""):
 
     ---
 
-    ⚠【強制安全評分規則（越安全分數越高）】
+    ⚠【安全評分標準（越安全分數越高）】
 
     請依下列標準給出 Safety Score：
 
     - 80 ~ 100：Excellent（安全性極佳，無顯著風險）
-    - 60 ~ 79：Good（安全性良好，僅有可忽略或輕微問題）
-    - 40 ~ 59：Fair（有明顯安全問題，需要改善）
-    - 0 ~ 39：Poor（不安全，存在重大危險或違反法規）
+    - 60 ~ 79：Good（安全性良好，僅有輕微問題）
+    - 40 ~ 59：Fair（有明顯安全問題，需改善）
+    - 0 ~ 39：Poor（不安全，存在重大危險或明顯違規情形）
 
-    務必以圖片中可觀察到的條件進行評估，不可留白。
+    請務必根據「圖片中確實可看到的內容」進行評估，不可加入推測或無法驗證的假設。
 
     ---
 
-    ⚠【輸出格式要求】  
-    請務必只生成「純 JSON」，不可包含 ```json 或 ```。
+    ⚠【安全問題產出規則】
 
-    JSON 格式請完全依照下列範例，不可新增或移除欄位：
+    請從圖片中辨識可能的危害，例如（僅作示例，不得寫死）：
+    - 地板濕滑
+    - 堆置雜物
+    - 通道被阻擋
+    - 動線混亂
+    - 逃生出口不明顯
+    - 照明不足
+    - 設備損壞
+    - 群眾擁擠
+
+    每一項問題都必須為「圖片可觀察到」的事實。
+
+    若此問題涉及法規，請在該問題的 `law` 欄位寫出法規名稱（例如：建築技術規則 §159）。
+    若沒有則留空字串 ""。
+
+    ---
+
+    ⚠【改善建議產出規則】
+
+    請提供 3~6 項具體的改善建議（單一陣列，不分法規/一般）。
+    每項建議需具體可行，不可與 issues 重複，不可太籠統（例如「改善環境」）。
+
+    ---
+
+    ⚠【輸出格式要求】
+
+    請務必只輸出「純 JSON」，不要包含 ```json、``` 或其他多餘內容。
+
+    JSON 格式如下，不可增刪欄位：
 
     {{
-    "safety_score": 0,
-    "safety_level": "Excellent | Good | Fair | Poor",
-    "summary": "一句話總結安全狀態",
-    "issues": [
-        {{"name": "問題名稱", "severity": "Low|Medium|High", "description": "具體描述"}}
-    ],
-    "legal_refs": [
-        {{"law": "適用法規名稱", "reason": "違規或適用原因"}}
-    ],
-    "suggestions": ["改善建議1", "改善建議2"]
+        "safety_score": 0,
+        "safety_level": "Excellent | Good | Fair | Poor",
+        "summary": "一句話總結安全狀態",
+        "issues": [
+            {{
+                "name": "問題名稱（依圖片判斷）",
+                "description": "具體描述（依圖片判斷）",
+                "law": "若有適用法規則填寫，否則空字串"
+            }}
+        ],
+        "suggestions": [
+            "具體改善建議（3~6項）"
+        ],
+        "image_url": ""
     }}
     """
 
@@ -109,6 +140,9 @@ def analyze_image_with_gemini(image_base64, location_type, custom_prompt=""):
 
         # ⭐ 嘗試解析 JSON
         parsed = json.loads(cleaned)
+        if "legal_refs" not in parsed:
+            parsed["legal_refs"] = []
+
         return parsed, cleaned
 
     except Exception as e:
