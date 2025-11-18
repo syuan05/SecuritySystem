@@ -27,46 +27,84 @@
 
   <!-- ===== Main Content ===== -->
   <main class="analytics-container fade-in">
-    <h2 style="margin-bottom: 20px;">People Flow Analytics</h2>
+    <!-- ===== Main Content ===== -->
+    <main class="analytics-container fade-in">
 
-    <!-- Camera Selector -->
-    <section class="camera-selector card">
-      <label for="cameraSelect">Select Camera:</label>
-      <select id="cameraSelect">
-        <option value="">All Cameras</option>
-      </select>
-    </section>
-
-    <!-- Chart: Last 24 Hours -->
-    <section class="chart-section card fade-in">
-      <div class="chart-header">
-        <h3>Last 24 Hours (Hourly)</h3>
+      <!-- ==== Tabs ==== -->
+      <div class="ana-tabs">
+        <div id="tab-flow" class="ana-tab active">People Flow</div>
+        <div id="tab-safety" class="ana-tab">AI Safety</div>
       </div>
-      <canvas id="hourlyChart"></canvas>
-    </section>
 
-    <!-- Chart: Last 7 Days -->
-    <section class="chart-section card fade-in">
-      <div class="chart-header">
-        <h3>Last 7 Days (Daily)</h3>
-      </div>
-      <canvas id="weeklyChart"></canvas>
-    </section>
+      <!-- ========== People Flow Section ========== -->
+      <section id="flow-section">
+        <h2 style="margin-bottom: 20px;">People Flow Analytics</h2>
 
-    <!-- Chart: Custom Range -->
-    <section class="chart-section card fade-in">
-      <div class="chart-header">
-        <h3>Custom Time Range</h3>
-        <div class="time-filter">
-          <label>Start:</label>
-          <input type="text" id="startTime" value="09:00">
-          <label>End:</label>
-          <input type="text" id="endTime" value="18:00">
-          <button id="filterBtn" class="btn">Apply</button>
-        </div>
-      </div>
-      <canvas id="customChart"></canvas>
-    </section>
+        <!-- Camera Selector -->
+        <section class="camera-selector card">
+          <label for="cameraSelect">Select Camera:</label>
+          <select id="cameraSelect">
+            <option value="">All Cameras</option>
+          </select>
+        </section>
+
+        <!-- Chart: Last 24 Hours -->
+        <section class="chart-section card fade-in">
+          <div class="chart-header">
+            <h3>Last 24 Hours (Hourly)</h3>
+          </div>
+          <canvas id="hourlyChart"></canvas>
+        </section>
+
+        <!-- Chart: Last 7 Days -->
+        <section class="chart-section card fade-in">
+          <div class="chart-header">
+            <h3>Last 7 Days (Daily)</h3>
+          </div>
+          <canvas id="weeklyChart"></canvas>
+        </section>
+
+        <!-- Chart: Custom Range -->
+        <section class="chart-section card fade-in">
+          <div class="chart-header">
+            <h3>Custom Time Range</h3>
+            <div class="time-filter">
+              <label>Start:</label>
+              <input type="text" id="startTime" value="09:00">
+              <label>End:</label>
+              <input type="text" id="endTime" value="18:00">
+              <button id="filterBtn" class="btn">Apply</button>
+            </div>
+          </div>
+          <canvas id="customChart"></canvas>
+        </section>
+      </section>
+
+      <!-- ========== AI Safety Section (Hidden by default) ========== -->
+      <section id="safety-section" class="hidden">
+
+        <h2 style="margin-bottom: 20px;">AI Safety Analysis</h2>
+
+        <section class="card camera-selector">
+          <label>Select Camera:</label>
+          <select id="safetyCameraSelect">
+            <option value="">All Cameras</option>
+          </select>
+        </section>
+
+        <!-- Records List -->
+        <div id="safetyList"></div>
+
+      </section>
+
+    </main>
+
+    <!-- ===== People Flow Panel (原本的全部包進這裡) ===== -->
+
+
+
+
+
   </main>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
   <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>

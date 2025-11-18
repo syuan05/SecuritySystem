@@ -14,6 +14,30 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 });
 
+// ======== Tab 切換 ========
+document.addEventListener("DOMContentLoaded", () => {
+
+  const tabFlow = document.getElementById("tab-flow");
+  const tabSafety = document.getElementById("tab-safety");
+  const flowSection = document.getElementById("flow-section");
+  const safetySection = document.getElementById("safety-section");
+
+  tabFlow.onclick = () => {
+    tabFlow.classList.add("active");
+    tabSafety.classList.remove("active");
+    flowSection.classList.remove("hidden");
+    safetySection.classList.add("hidden");
+  };
+
+  tabSafety.onclick = () => {
+    tabSafety.classList.add("active");
+    tabFlow.classList.remove("active");
+    safetySection.classList.remove("hidden");
+    flowSection.classList.add("hidden");
+    loadSafetyRecords();
+  };
+});
+
 // === 載入攝影機清單 ===
 async function loadCameraOptions() {
   const res = await fetch("/api/cameras");
@@ -219,6 +243,52 @@ function setupCustomChart() {
     loadCustomData(start, end);
   });
 }
+
+async function loadSafetyRecords() {
+  const cam = document.getElementById("safetyCameraSelect").value;
+  const res = await fetch(`/api/safety/list?camera_id=${cam}`);
+  const data = await res.json();
+
+  const box = document.getElementById("safetyList");
+  box.innerHTML = "";
+
+  data.forEach(r => {
+    const div = document.createElement("div");
+    div.className = "safety-item";
+
+    div.innerHTML = `
+      <div class="safety-score ${r.safety_level.toLowerCase()}">
+        ${r.safety_score}
+      </div>
+
+      <div style="flex:1; padding:0 15px;">
+        <b>${r.camera_name}</b> (${r.location_type})<br>
+        <small>${r.summary}</small><br>
+        <small style="opacity:0.6">${r.created_at}</small>
+      </div>
+
+      <a class="safety-btn" href="/safety/${r.id}">View</a>
+    `;
+
+    box.appendChild(div);
+  });
+}
+
+// 攝影機下拉清單
+document.addEventListener("DOMContentLoaded", async () => {
+  const res = await fetch("/api/cameras");
+  const cams = await res.json();
+
+  const sel = document.getElementById("safetyCameraSelect");
+  cams.forEach(c => {
+    const opt = document.createElement("option");
+    opt.value = c.camera_id;
+    opt.textContent = c.camera_name;
+    sel.appendChild(opt);
+  });
+
+  sel.onchange = loadSafetyRecords;
+});
 
 // === 日期格式工具 ===
 function formatDate(dateStr) {

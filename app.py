@@ -4,6 +4,7 @@ import os, cv2, json, time, threading
 from dotenv import load_dotenv
 from db_utils import get_db_connection
 from detector.video_manager import manager_instance as manager
+from detector.safety_scheduler import run_safety_scheduler
 
 
 load_dotenv()
@@ -61,8 +62,14 @@ def get_camera(camera_id):
         SELECT 
             camera_id,
             camera_name,
-            location,     -- ⭐ 你資料庫的欄位（若名稱不同要改這裡）
-            camera_url           -- ⭐ RTSP URL 欄位
+            location,
+            camera_url,
+
+            -- ⭐ 新增 Safety Analysis 欄位
+            safety_analysis_enabled,
+            safety_analysis_interval,
+            safety_location_type,
+            safety_location_custom
         FROM cameras
         WHERE camera_id = %s;
     """, (camera_id,))
@@ -595,10 +602,151 @@ def update_camera():
         cur.close()
         conn.close()
 
+@app.route("/api/camera/save_all", methods=["POST"])
+def camera_save_all():
+    data = request.json
+    camera_id = data["camera_id"]
+
+    name = data["name"]
+    location = data["location"]
+
+    safety_enabled = data["safety_enabled"]
+    safety_interval = data["safety_interval"]
+    safety_type = data["safety_location_type"]
+    safety_custom = data["safety_location_custom"]
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    try:
+        cur.execute("""
+            UPDATE cameras SET
+                camera_name=%s,
+                location=%s,
+                safety_analysis_enabled=%s,
+                safety_analysis_interval=%s,
+                safety_location_type=%s,
+                safety_location_custom=%s
+            WHERE camera_id=%s
+        """, (
+            name, location,
+            safety_enabled,
+            safety_interval,
+            safety_type,
+            safety_custom,
+            camera_id
+        ))
+
+        conn.commit()
+        return jsonify({"status": "ok"})
+
+    except Exception as e:
+        conn.rollback()
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+    finally:
+        cur.close()
+        conn.close()
+
+@app.route("/api/camera/safety/<int:camera_id>")
+def get_camera_safety(camera_id):
+    conn = get_db_connection()
+    cur = conn.cursor(dictionary=True)
+
+    cur.execute("""
+        SELECT 
+            safety_analysis_enabled,
+            safety_analysis_interval,
+            safety_location_type,
+            safety_location_custom
+        FROM cameras
+        WHERE camera_id = %s
+    """, (camera_id,))
+    
+    row = cur.fetchone()
+    cur.close()
+    conn.close()
+
+    if not row:
+        return jsonify({"error": "Camera not found"}), 404
+
+    return jsonify({
+        "safety_analysis_enabled": bool(row["safety_analysis_enabled"]),
+        "safety_analysis_interval": row["safety_analysis_interval"],
+        "safety_location_type": row["safety_location_type"],
+        "safety_location_custom": row["safety_location_custom"]
+    })
+
+@app.route("/api/safety_reports")
+def safety_reports():
+    cam_id = request.args.get("camera_id")
+    
+    conn = get_db_connection()
+    cur = conn.cursor(dictionary=True)
+
+    if cam_id:
+        cur.execute("""
+            SELECT *
+            FROM safety_reports
+            WHERE camera_id=%s
+            ORDER BY created_at DESC
+        """, (cam_id,))
+    else:
+        cur.execute("""
+            SELECT *
+            FROM safety_reports
+            ORDER BY created_at DESC
+        """)
+
+    data = cur.fetchall()
+    cur.close(); conn.close()
+    return jsonify(data)
 
 
+@app.route("/api/safety_reports/<int:rid>")
+def safety_reports_detail(rid):
+    conn = get_db_connection()
+    cur = conn.cursor(dictionary=True)
+    cur.execute("SELECT * FROM safety_reports WHERE id=%s", (rid,))
+    row = cur.fetchone()
+    cur.close(); conn.close()
+
+    if not row:
+        return jsonify({"error": "not found"}), 404
+
+    return jsonify(row)
+
+# Safety list API
+@app.route("/api/safety/list")
+def api_safety_list():
+    cam = request.args.get("camera_id")
+
+    conn = get_db_connection()
+    cur = conn.cursor(dictionary=True)
+
+    if cam:
+        cur.execute("""
+            SELECT r.*, c.camera_name
+            FROM safety_reports r
+            LEFT JOIN cameras c ON r.camera_id=c.camera_id
+            WHERE r.camera_id=%s
+            ORDER BY r.created_at DESC
+        """, (cam,))
+    else:
+        cur.execute("""
+            SELECT r.*, c.camera_name
+            FROM safety_reports r
+            LEFT JOIN cameras c ON r.camera_id=c.camera_id
+            ORDER BY r.created_at DESC
+        """)
+
+    data = cur.fetchall()
+    cur.close()
+    conn.close()
+    return jsonify(data)
 
 if __name__ == "__main__":
     if os.environ.get("WERKZEUG_RUN_MAIN") == "true":
         threading.Thread(target=start_detection_system, daemon=True).start()
+        threading.Thread(target=run_safety_scheduler, daemon=True).start()
     app.run(host="0.0.0.0", port=5000, debug=True)

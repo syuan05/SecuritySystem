@@ -12,6 +12,7 @@ window.onload = async function () {
 
   const params = new URLSearchParams(window.location.search);
   cameraId = params.get("id");
+  window.currentCameraId = cameraId;
   function applyTimePicker() {
     flatpickr("input[type='time']", {
       enableTime: true,
@@ -34,9 +35,13 @@ window.onload = async function () {
     }
 
     // 顯示影片
-    document.getElementById("cameraTitle").textContent = data.camera_name;
     imgStream.src = `/video_feed/${cameraId}`;
+    document.getElementById("safety-switch").checked = Boolean(data.safety_analysis_enabled);
+    document.getElementById("safety-interval").value = data.safety_analysis_interval || "";
+    document.getElementById("safety-location").value = data.safety_location_type || "";
+    document.getElementById("safety-location-custom").value = data.safety_location_custom || "";
 
+    updateSafetyUI();
     document.getElementById("cam-name").value = data.camera_name || "";
     document.getElementById("cam-location").value = data.location || "";
     document.getElementById("cameraTitle").textContent = data.name;
@@ -86,6 +91,7 @@ window.onload = async function () {
 
   }
   await loadCamera();
+
 
   imgStream.onload = function () {
     canvas.width = imgStream.clientWidth;
@@ -696,6 +702,7 @@ window.onload = async function () {
 
   }
 
+
   async function saveCrowdFence(points) {
     const videoWidth = imgStream.clientWidth;
     const videoHeight = imgStream.clientHeight;
@@ -774,3 +781,68 @@ window.saveCameraInfo = async function () {
   document.getElementById("cameraTitle").textContent = name;
   alert("Camera info updated!");
 };
+
+// 當 Safety Analysis 開關切換時
+document.getElementById("safety-switch").addEventListener("change", () => {
+  updateSafetyUI();
+});
+
+function updateSafetyUI() {
+  const enabled = document.getElementById("safety-switch").checked;
+
+  const interval = document.getElementById("safety-interval");
+  const loc = document.getElementById("safety-location");
+  const custom = document.getElementById("safety-location-custom");
+
+  interval.disabled = !enabled;
+  loc.disabled = !enabled;
+
+  if (loc.value === "其他" && enabled) {
+    custom.disabled = false;
+    document.getElementById("location-custom-row").classList.remove("hidden");
+  } else {
+    custom.disabled = true;
+    document.getElementById("location-custom-row").classList.add("hidden");
+  }
+}
+
+// Location type change
+document.getElementById("safety-location").addEventListener("change", updateSafetyUI);
+
+
+// ============================================
+// ☑ 合併 Save（一次存 Camera Info + Safety Analysis）
+// ============================================
+function saveAllSettings() {
+  const cameraId = window.currentCameraId;
+
+  // Camera info
+  const cameraName = document.getElementById("cam-name").value;
+  const cameraLocation = document.getElementById("cam-location").value;
+
+  // Safety
+  const enabled = document.getElementById("safety-switch").checked;
+
+  const payload = {
+    camera_id: cameraId,
+    name: cameraName,
+    location: cameraLocation,
+
+    safety_enabled: enabled,
+    safety_interval: Number(document.getElementById("safety-interval").value),
+    safety_location_type: document.getElementById("safety-location").value,
+    safety_location_custom: document.getElementById("safety-location-custom").value
+  };
+
+  fetch("/api/camera/save_all", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  })
+    .then(r => r.json())
+    .then(res => {
+      alert("Settings saved!");
+    });
+}
+
+window.saveAllSettings = saveAllSettings;

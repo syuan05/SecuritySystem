@@ -38,19 +38,68 @@
           Function Settings
         </span>
       </div>
-
-      <!-- Panel 1: Camera Info -->
+      <!-- Panel 1: Camera Info + Safety Analysis (合併 save) -->
       <div id="panel-info" class="tab-panel">
+
+        <!-- Camera Name -->
         <div class="setting-card">
           <label>Camera Name</label>
           <input id="cam-name">
         </div>
 
+        <!-- Location -->
         <div class="setting-card">
           <label>Location</label>
           <input id="cam-location">
         </div>
-        <button class="btn-outline" onclick="saveCameraInfo()">Save</button>
+
+        <!-- Safety Analysis Block -->
+        <div class="setting-card">
+          <div class="setting-row">
+            <span class="setting-label">Safety Analysis</span>
+            <label class="switch">
+              <input id="safety-switch" type="checkbox">
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <!-- Interval -->
+          <div class="sub-row">
+            <label>Interval</label>
+            <select id="safety-interval" disabled>
+              <option value="10">10 min</option>
+              <option value="30">30 min</option>
+              <option value="60">1 hr</option>
+              <option value="180">3 hr</option>
+              <option value="720">12 hr</option>
+              <option value="1440">24 hr</option>
+            </select>
+          </div>
+
+          <!-- Location Type -->
+          <div class="sub-row">
+            <label>Location Type</label>
+            <select id="safety-location" disabled>
+              <option value="">-- Select --</option>
+              <option value="車站大廳">車站大廳</option>
+              <option value="樓梯口">樓梯口</option>
+              <option value="施工場地">施工場地</option>
+              <option value="住宅走廊">住宅走廊</option>
+              <option value="公共廁所">公共廁所</option>
+              <option value="其他">其他</option>
+            </select>
+          </div>
+
+          <!-- Custom Location -->
+          <div class="sub-row hidden" id="location-custom-row">
+            <label>Custom</label>
+            <input id="safety-location-custom" disabled placeholder="Describe location...">
+          </div>
+        </div>
+
+        <!-- Unified Save Button -->
+        <button class="btn-outline" onclick="saveAllSettings()">Save</button>
+
       </div>
 
       <!-- ========== Function Settings Tab ========== -->

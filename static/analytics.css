@@ -103,3 +103,97 @@ canvas {
 .chart-section.fade-in {
   animation: fadeInUp 0.8s ease both;
 }
+
+/* ===== Tabs ===== */
+.ana-tabs {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 25px;
+}
+
+.ana-tab {
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  background: var(--bg-light);
+  font-weight: 600;
+  color: var(--bg-dark);
+  transition: 0.25s;
+}
+
+.ana-tab.active {
+  background: var(--accent);
+  color: white;
+}
+
+/* Hidden */
+.hidden {
+  display: none !important;
+}
+
+/* ===== Safety List ===== */
+.safety-item {
+  background: white;
+  border-radius: 12px;
+  padding: 15px;
+  margin-bottom: 12px;
+  box-shadow: var(--shadow);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.safety-score {
+  width: 60px;
+  height: 60px;
+  border-radius: 12px;
+  font-size: 22px;
+  font-weight: bold;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.safety-score.excellent { background:#3fa34d; color:white; }
+.safety-score.good      { background:#F2C94C; color:black; }
+.safety-score.fair      { background:#FF8C00; color:white; }
+.safety-score.poor      { background:#D64550; color:white; }
+
+.safety-btn {
+  background: #3b82f6;
+  color: white;
+  padding: 8px 12px;
+  border-radius: 8px;
+  text-decoration: none;
+}
+/* ===== Minimal Grey Navbar-Style Tabs ===== */
+.ana-tabs {
+  display: flex;
+  gap: 32px;
+  margin-bottom: 24px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.ana-tab {
+  padding: 10px 4px;
+  font-size: 17px;
+  font-weight: 600;
+  color: #6b7280; /* 淺灰 */
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+  transition: color 0.2s ease, border-bottom-color 0.2s ease;
+  background: transparent !important;
+  border-radius: 0 !important;
+  color: #6b7280 !important;
+  padding: 10px 4px !important;
+}
+
+.ana-tab:hover {
+  color: #374151;
+}
+
+.ana-tab.active {
+  background: transparent !important;
+  color: #111827 !important;
+  border-bottom: 3px solid #3b82f6 !important;
+}
