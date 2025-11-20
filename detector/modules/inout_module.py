@@ -208,7 +208,8 @@ class InOutModule(DetectorBase):
                         )
                         event_bus.push_event(self.camera_id, evt)
                         events.append(evt)
-
+                    else:
+                        print(f"[INFO] Non-violation crossing at gate {g['name']} by tid {tid}")
                 rt.last_side[tid] = curr_side
 
         self.last_events = events

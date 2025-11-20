@@ -253,8 +253,7 @@ async function loadSafetyRecords() {
   box.innerHTML = "";
 
   data.forEach(r => {
-    const level = (r.safety_level || "unknown").toLowerCase();
-
+    const level = getSafetyLevelByScore(r.safety_score);
     const div = document.createElement("div");
     div.className = "safety-item";
 
@@ -291,32 +290,32 @@ function openSafetyPanel(data, parentDiv) {
   // === 安全處理 Issues ===
   let issues = [];
   if (Array.isArray(data.issues)) {
-      issues = data.issues;
+    issues = data.issues;
   } else if (typeof data.issues === "string") {
-      const s = data.issues.trim();
-      if (s !== "" && s !== "null" && s !== "None") {
-          try {
-              const parsed = JSON.parse(s);
-              if (Array.isArray(parsed)) issues = parsed;
-          } catch {}
-      }
+    const s = data.issues.trim();
+    if (s !== "" && s !== "null" && s !== "None") {
+      try {
+        const parsed = JSON.parse(s);
+        if (Array.isArray(parsed)) issues = parsed;
+      } catch { }
+    }
   }
 
   // === 安全處理 Suggestions ===
   let suggestions = [];
   if (Array.isArray(data.suggestions)) {
-      suggestions = data.suggestions;
+    suggestions = data.suggestions;
   } else if (typeof data.suggestions === "string") {
-      const s = data.suggestions.trim();
-      if (s !== "" && s !== "null" && s !== "None") {
-          try {
-              const parsed = JSON.parse(s);
-              if (Array.isArray(parsed)) suggestions = parsed;
-              else suggestions = [s];
-          } catch {
-              suggestions = [s];
-          }
+    const s = data.suggestions.trim();
+    if (s !== "" && s !== "null" && s !== "None") {
+      try {
+        const parsed = JSON.parse(s);
+        if (Array.isArray(parsed)) suggestions = parsed;
+        else suggestions = [s];
+      } catch {
+        suggestions = [s];
       }
+    }
   }
 
   // === Create expand div ===
@@ -324,25 +323,35 @@ function openSafetyPanel(data, parentDiv) {
   expand.className = "safety-expand";
 
   expand.innerHTML = `
-    <img src="${data.image_url || ""}" class="expand-img">
+    <div class="expand-layout">
+      
+      <div class="expand-left">
+        <img src="${data.image_url || ""}" class="expand-img">
+      </div>
 
-    <h4><span class="icon-title icon-issue">⚠</span> Safety Issues</h4>
-    <ul>
-      ${issues.map(i => `
-        <li>
-          <b>${i.name}</b> — ${i.description}
-          ${i.law ? `<span style="color:#888;">（${i.law}）</span>` : ""}
-        </li>
-      `).join("")}
-    </ul>
+      <div class="expand-right">
 
-    <h4><span class="icon-title icon-sug">✨</span> Suggestions</h4>
-    <ul>
-      ${suggestions.map(s => `<li>${s}</li>`).join("")}
-    </ul>
+        <h4><span class="icon-title icon-issue">⚠</span> Safety Issues</h4>
+        <ul>
+          ${issues.map(i => `
+            <li>
+              <b>${i.name}</b> — ${i.description}
+              ${i.law ? `<span style="color:#888;">（${i.law}）</span>` : ""}
+            </li>
+          `).join("")}
+        </ul>
 
-    <p style="font-size:13px; opacity:0.6;">Created: ${data.created_at}</p>
+        <h4><span class="icon-title icon-sug">✨</span> Suggestions</h4>
+        <ul>
+          ${suggestions.map(s => `<li>${s}</li>`).join("")}
+        </ul>
+
+        <p class="created-time">Created: ${data.created_at}</p>
+      </div>
+
+    </div>
   `;
+
 
   parentDiv.after(expand);
 
@@ -353,6 +362,12 @@ function openSafetyPanel(data, parentDiv) {
 }
 
 
+function getSafetyLevelByScore(score) {
+  if (score >= 80) return "excellent";
+  if (score >= 60) return "good";
+  if (score >= 40) return "fair";
+  return "poor";
+}
 
 // 攝影機下拉清單
 document.addEventListener("DOMContentLoaded", async () => {

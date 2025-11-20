@@ -96,7 +96,7 @@ class PersonCountModule(DetectorBase):
     # =====================================================
     def process_frame(self, frame):
         COOLDOWN = 2
-        MIN_NEAR = 30
+        MIN_NEAR = 15
         last_evt = {}
         
         with pose_model_lock: 

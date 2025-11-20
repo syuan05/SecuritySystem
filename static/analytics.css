@@ -314,3 +314,40 @@ canvas {
   margin-bottom: 15px;
   box-shadow: var(--shadow);
 }
+.expand-layout {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+}
+
+/* 左邊圖片欄 */
+.expand-left {
+  flex: 0 0 40%; /* 固定 40% 寬 */
+}
+
+.expand-img {
+  width: 100%;
+  height: auto;        /* ⭐ 保留原始比例 */
+  border-radius: 12px;
+  object-fit: contain; /* ⭐ 不裁切、不壓縮 */
+  box-shadow: var(--shadow);
+}
+
+/* 右邊文字欄 */
+.expand-right {
+  flex: 1;
+}
+
+.expand-right h4 {
+  margin-top: 10px;
+}
+
+.expand-right ul {
+  margin: 8px 0 16px 0;
+  padding-left: 20px;
+}
+
+.created-time {
+  opacity: 0.6;
+  font-size: 13px;
+}
