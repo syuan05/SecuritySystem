@@ -24,7 +24,7 @@ def upload_to_cloudinary(image_bytes):
 # 🔹 Gemini 設定（統一管理）
 # ======================================================
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-GEMINI_MODEL = "gemini-2.0-flash"
+GEMINI_MODEL = "gemini-2.5-flash"
 
 
 def call_gemini_api(prompt, image_base64):

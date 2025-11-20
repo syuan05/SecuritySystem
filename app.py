@@ -745,6 +745,225 @@ def api_safety_list():
     conn.close()
     return jsonify(data)
 
+
+
+# newwwww
+@app.route('/api/login', methods=['POST'])
+def login():
+    """
+    登入驗證 API
+    接收: {"email": "...", "password": "..."}
+    返回: {"user_id": "..."} 或錯誤訊息
+    """
+    data = request.get_json()
+    email = data.get('email')
+    password = data.get('password')
+    
+    if not email or not password:
+        return jsonify({"error": "缺少帳號或密碼"}), 400
+    
+    conn = get_db_connection()
+    cur = conn.cursor(dictionary=True)
+    
+    try:
+        # 🔹 假設你有 users 表，包含 user_id, email, password_hash 欄位
+        cur.execute("""
+            SELECT user_id, email, password_hash 
+            FROM users 
+            WHERE email = %s
+        """, (email,))
+        
+        user = cur.fetchone()
+        
+        if not user:
+            return jsonify({"error": "帳號不存在"}), 401
+        
+        # 🔹 驗證密碼 (建議使用 bcrypt 或其他加密方式)
+        # 這裡簡化為直接比對，實際應用應該要用 bcrypt.checkpw()
+        if user['password_hash'] == password:  # 實際應該用加密比對
+            return jsonify({
+                "user_id": str(user['user_id']),
+                "email": user['email']
+            }), 200
+        else:
+            return jsonify({"error": "密碼錯誤"}), 401
+            
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    finally:
+        cur.close()
+        conn.close()
+
+
+# 🔹 可選: 儲存 FCM Token 的路由
+@app.route('/api/user/<user_id>/fcm_token', methods=['POST'])
+def save_fcm_token(user_id):
+    """儲存使用者的 FCM Token"""
+    data = request.get_json()
+    token = data.get('fcm_token')
+    
+    if not token:
+        return jsonify({"error": "缺少 token"}), 400
+    
+    conn = get_db_connection()
+    cur = conn.cursor()
+    
+    try:
+        # 假設 users 表有 fcm_token 欄位
+        cur.execute("""
+            UPDATE users 
+            SET fcm_token = %s 
+            WHERE user_id = %s
+        """, (token, user_id))
+        
+        conn.commit()
+        return jsonify({"status": "ok"}), 200
+        
+    except Exception as e:
+        conn.rollback()
+        return jsonify({"error": str(e)}), 500
+    finally:
+        cur.close()
+        conn.close()
+
+# 📊 獲取攝影機的 light 事件統計 (按日期分組)
+@app.route('/api/camera/<int:camera_id>/light_stats')
+def get_light_stats(camera_id):
+    """
+    獲取指定攝影機的 light 事件統計
+    返回每日的 light 事件次數
+    """
+    conn = get_db_connection()
+    cur = conn.cursor(dictionary=True)
+    
+    try:
+        # 獲取近 30 天的 light 事件統計
+        cur.execute("""
+            SELECT 
+                DATE(timestamp) AS date,
+                COUNT(*) AS light_count,
+                event_type
+            FROM events
+            WHERE camera_id = %s
+              AND alert_level = 'light'
+              AND timestamp >= CURDATE() - INTERVAL 30 DAY
+            GROUP BY DATE(timestamp), event_type
+            ORDER BY date DESC;
+        """, (camera_id,))
+        
+        daily_stats = cur.fetchall()
+        
+        # 格式化日期
+        for stat in daily_stats:
+            if stat['date']:
+                stat['date'] = stat['date'].strftime('%Y-%m-%d')
+        
+        return jsonify(daily_stats)
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    finally:
+        cur.close()
+        conn.close()
+
+
+# 📋 獲取攝影機的詳細 light 事件列表
+@app.route('/api/camera/<int:camera_id>/light_events')
+def get_light_events(camera_id):
+    """
+    獲取指定攝影機的所有 light 事件詳細列表
+    支援日期篩選
+    """
+    start_date = request.args.get("start_date")
+    end_date = request.args.get("end_date")
+    
+    conn = get_db_connection()
+    cur = conn.cursor(dictionary=True)
+    
+    try:
+        query = """
+            SELECT 
+                e.event_id,
+                e.camera_id,
+                c.camera_name,
+                e.gate_id,
+                g.gate_name,
+                e.event_type,
+                e.alert_level,
+                e.timestamp
+            FROM events e
+            LEFT JOIN cameras c ON e.camera_id = c.camera_id
+            LEFT JOIN gates g ON e.gate_id = g.gate_id
+            WHERE e.camera_id = %s
+              AND e.alert_level = 'light'
+        """
+        params = [camera_id]
+        
+        if start_date:
+            query += " AND DATE(e.timestamp) >= %s"
+            params.append(start_date)
+        
+        if end_date:
+            query += " AND DATE(e.timestamp) <= %s"
+            params.append(end_date)
+        
+        query += " ORDER BY e.timestamp DESC"
+        
+        cur.execute(query, params)
+        events = cur.fetchall()
+        
+        # 格式化時間
+        for event in events:
+            if event['timestamp']:
+                event['timestamp'] = event['timestamp'].strftime('%Y-%m-%d %H:%M:%S')
+        
+        return jsonify(events)
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    finally:
+        cur.close()
+        conn.close()
+
+
+# 📈 獲取攝影機的事件統計摘要
+@app.route('/api/camera/<int:camera_id>/event_summary')
+def get_event_summary(camera_id):
+    """
+    獲取攝影機的事件統計摘要
+    包含各等級事件的總數和最近一次事件時間
+    """
+    conn = get_db_connection()
+    cur = conn.cursor(dictionary=True)
+    
+    try:
+        # 統計各等級事件數量
+        cur.execute("""
+            SELECT 
+                alert_level,
+                COUNT(*) AS count,
+                MAX(timestamp) AS last_event
+            FROM events
+            WHERE camera_id = %s
+            GROUP BY alert_level;
+        """, (camera_id,))
+        
+        summary = cur.fetchall()
+        
+        # 格式化時間
+        for item in summary:
+            if item['last_event']:
+                item['last_event'] = item['last_event'].strftime('%Y-%m-%d %H:%M:%S')
+        
+        return jsonify(summary)
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    finally:
+        cur.close()
+        conn.close()
+
+
 if __name__ == "__main__":
     if os.environ.get("WERKZEUG_RUN_MAIN") == "true":
         threading.Thread(target=start_detection_system, daemon=True).start()
