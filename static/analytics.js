@@ -7,8 +7,6 @@ let customChart = null;
 
 // 載入更多相關變數
 let allSafetyRecords = [];
-let displayedCount = 0;
-const RECORDS_PER_LOAD = 5;
 
 document.addEventListener("DOMContentLoaded", () => {
   loadCameraOptions().then(() => {
@@ -256,9 +254,6 @@ async function loadSafetyRecords() {
   const res = await fetch(`/api/safety/list?camera_id=${cam}`);
   const data = await res.json();
 
-  allSafetyRecords = data;
-  displayedCount = 0;
-
   const box = document.getElementById("safetyList");
   box.innerHTML = "";
 
@@ -272,15 +267,8 @@ async function loadSafetyRecords() {
     return;
   }
 
-  // 顯示前 5 筆
-  renderMoreRecords();
-}
-
-function renderMoreRecords() {
-  const box = document.getElementById("safetyList");
-  const toDisplay = allSafetyRecords.slice(displayedCount, displayedCount + RECORDS_PER_LOAD);
-
-  toDisplay.forEach(r => {
+  // 直接一次 append 全部
+  data.forEach(r => {
     const level = getSafetyLevelByScore(r.safety_score);
     const div = document.createElement("div");
     div.className = "safety-item";
@@ -300,44 +288,8 @@ function renderMoreRecords() {
     `;
 
     div.querySelector(".safety-btn").onclick = () => openSafetyPanel(r, div);
-
     box.appendChild(div);
   });
-
-  displayedCount += toDisplay.length;
-
-  // 更新或移除「載入更多」按鈕
-  updateLoadMoreButton();
-}
-
-function updateLoadMoreButton() {
-  const box = document.getElementById("safetyList");
-  let loadMoreContainer = document.getElementById("loadMoreContainer");
-
-  // 如果已經顯示全部，移除按鈕
-  if (displayedCount >= allSafetyRecords.length) {
-    if (loadMoreContainer) {
-      loadMoreContainer.remove();
-    }
-    return;
-  }
-
-  // 如果按鈕不存在，創建它
-  if (!loadMoreContainer) {
-    loadMoreContainer = document.createElement("div");
-    loadMoreContainer.id = "loadMoreContainer";
-    loadMoreContainer.className = "load-more-container";
-    loadMoreContainer.innerHTML = `
-      <button class="load-more-btn" onclick="renderMoreRecords()">
-        載入更多 (剩餘 ${allSafetyRecords.length - displayedCount} 筆)
-      </button>
-    `;
-    box.appendChild(loadMoreContainer);
-  } else {
-    // 更新按鈕文字
-    const btn = loadMoreContainer.querySelector(".load-more-btn");
-    btn.textContent = `載入更多 (剩餘 ${allSafetyRecords.length - displayedCount} 筆)`;
-  }
 }
 
 // ========================================
@@ -403,19 +355,19 @@ function openSafetyPanel(data, parentDiv) {
         <!-- ⚠️ 檢測問題 (可摺疊) -->
         ${issues.length > 0 ? `
           <div class="collapsible-section">
-            <div class="collapsible-header" onclick="toggleCollapse(this)">
+            <div class="collapsible-header issue" onclick="toggleCollapse(this)">
               <div class="collapsible-title">
                 <span class="icon-title icon-issue">⚠</span>
                 <span>檢測問題 (${issues.length})</span>
               </div>
               <span class="collapsible-toggle">▼</span>
             </div>
+
             <div class="collapsible-content">
-              <div class="collapsible-content-inner">
+              <div class="collapsible-content-inner issue">
                 <ul style="list-style: none; padding: 0; margin: 0;">
                   ${issues.map((issue, idx) => {
                     const severityBadge = `<span class="severity-badge ${issue.severity || 'medium'}">${getSeverityText(issue.severity)}</span>`;
-                    
                     return `
                       <li class="issue-item">
                         <div class="issue-header">
@@ -463,7 +415,12 @@ function openSafetyPanel(data, parentDiv) {
     <!-- 法規依據 (不可摺疊) -->
     ${legalRefs.length > 0 ? `
       <div class="legal-fullwidth">
-        <h4><span class="icon-title icon-law">📚</span> 法規依據</h4>
+        <div class="law-header">
+          <div class="law-header-title">
+            <span class="icon-title icon-law">📚</span>
+            <span>法規依據</span>
+          </div>
+        </div>
 
         <div class="legal-fw-box">
 
@@ -506,10 +463,10 @@ function openSafetyPanel(data, parentDiv) {
 
   parentDiv.after(expand);
 
-  // 展開後自動滾動
-  setTimeout(() => {
-    expand.scrollIntoView({ behavior: "smooth", block: "start" });
-  }, 100);
+  // // 展開後自動滾動
+  // setTimeout(() => {
+  //   expand.scrollIntoView({ behavior: "smooth", block: "start" });
+  // }, 100);
 }
 
 // ========================================
@@ -519,7 +476,20 @@ function openSafetyPanel(data, parentDiv) {
 function toggleCollapse(header) {
   const content = header.nextElementSibling;
   const toggle = header.querySelector(".collapsible-toggle");
-  
+
+  // 先把同一個 expand-right 裡其他展開的收起來
+  const parent = header.closest(".expand-right");
+  const allContents = parent.querySelectorAll(".collapsible-content.expanded");
+
+  allContents.forEach(c => {
+    if (c !== content) {
+      c.classList.remove("expanded");
+      const hdr = c.previousElementSibling;
+      hdr.querySelector(".collapsible-toggle").classList.remove("expanded");
+    }
+  });
+
+  // 自己切換
   if (content.classList.contains("expanded")) {
     content.classList.remove("expanded");
     toggle.classList.remove("expanded");
@@ -528,6 +498,7 @@ function toggleCollapse(header) {
     toggle.classList.add("expanded");
   }
 }
+
 
 // ========================================
 // 工具函數

@@ -213,11 +213,11 @@ canvas {
 
 /* 兩欄佈局 */
 .expand-layout {
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
+  display: grid;
+  grid-template-columns: 45% 55%; 
+  gap: 20px;
+  align-items: start;
 }
-
 /* 圖片區 */
 .expand-img {
   width: 100%;
@@ -248,18 +248,29 @@ canvas {
 /* Icon 顏色 */
 .icon-title {
   font-size: 18px;
+  width: 24px;       /* 👈 新增：統一圖標寬度 */
+  display: inline-block;
+  text-align: center;
 }
 
 .icon-issue { color:#d64550; }
 .icon-sug   { color:#2563eb; }
 .icon-law   { color:#16a34a; }
 
+
 /* ========================================
    可摺疊區塊 (檢測問題 & 改善建議)
    ======================================== */
 
 .collapsible-section {
-  margin-bottom: 15px;
+  overflow: hidden;
+  border-radius: 12px;
+}
+
+.collapsible-header,
+.collapsible-content-inner {
+  width: 96.5%;
+  box-sizing: border-box;
 }
 
 .collapsible-header {
@@ -269,19 +280,17 @@ canvas {
   background: white;
   padding: 12px 15px;
   border-radius: 10px;
+  padding-right: 18px;
   cursor: pointer;
   border-left: 4px solid #f59e0b;
   box-shadow: 0 2px 8px rgba(0,0,0,0.08);
   transition: all 0.2s ease;
+  overflow: hidden;
 }
 
 .collapsible-header:hover {
   transform: translateX(3px);
   box-shadow: 0 4px 12px rgba(0,0,0,0.12);
-}
-
-.collapsible-header.suggestions {
-  border-left-color: #3b82f6;
 }
 
 .collapsible-title {
@@ -297,6 +306,10 @@ canvas {
   font-size: 20px;
   color: #6b7280;
   transition: transform 0.3s ease;
+  width: 20px;           /* ⭐ 固定寬度 */
+  text-align: right;     /* ⭐ 靠右對齊 */
+  flex-shrink: 0;        /* ⭐ 不被擠壓 */
+  margin-left: auto;
 }
 
 .collapsible-toggle.expanded {
@@ -492,6 +505,14 @@ canvas {
   color: #2c2c2c;
 }
 
+.issue-desc,
+.suggestion-list li,
+.law-one-line,
+.law-detail {
+  line-height: 1.45;
+  margin-bottom: 6px;
+}
+
 /* ========================================
    時間戳記
    ======================================== */
@@ -539,6 +560,88 @@ canvas {
   cursor: not-allowed;
   transform: none;
   box-shadow: none;
+}
+
+/* ============================
+   法規依據標題（統一風格版）
+   ============================ */
+
+.law-header {
+  display: flex;
+  align-items: center;
+  background: rgba(247, 181, 74, 0.15); 
+  padding: 12px 15px;
+  border-radius: 10px;
+  border-left: 4px solid #f59e0b;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  margin-top: 20px;
+  margin-bottom: 10px;
+  
+}
+
+.law-header-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+  font-weight: 700;
+  color: #b45309;
+}
+
+.law-fw-box {
+  background: rgba(247, 181, 74, 0.12);  /* 卡片背景橘色 */
+}
+
+.law-header .icon-title {
+  width: 24px;
+  font-size: 18px;
+  text-align: center;
+}
+
+.collapsible-header.issue {
+  border-left-color: #dc2626;
+  background: rgba(220, 38, 38, 0.1); /* 紅色半透明 */
+}
+
+.collapsible-header.issue .collapsible-title {
+  color: #b91c1c; /* 深紅字體 */
+}
+
+.collapsible-content-inner.issue {
+  border-left-color: #dc2626;
+  background: rgba(220, 38, 38, 0.06);
+}
+
+/* 🔴 檢測問題：內容文字顏色 */
+.collapsible-content-inner.issue .issue-header strong {
+  color: #b91c1c; /* 深紅 */
+}
+
+.collapsible-content-inner.issue .issue-desc {
+  color: #7f1d1d; /* 深紅次色 */
+}
+
+.collapsible-header.suggestions {
+  border-left-color: #16a34a;
+  background: rgba(22, 163, 74, 0.12); /* 綠色半透明 */
+}
+
+.collapsible-header.suggestions .collapsible-title {
+  color: #15803d; /* 綠字 */
+}
+
+.collapsible-content-inner.suggestions {
+  border-left-color: #16a34a;
+  background: rgba(22, 163, 74, 0.06);
+}
+
+/* 改善建議內容文字（綠色） */
+.collapsible-content-inner.suggestions li {
+  color: #14532d; /* 深綠字體 */
+}
+
+.collapsible-content-inner.suggestions li::before {
+  color: #15803d; /* 綠色圓點 */
 }
 
 /* ========================================
