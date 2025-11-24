@@ -53,6 +53,7 @@ class VideoWorker:
             ok, frame = cap.read()
 
             if not ok or frame is None:
+                time.sleep(1/30)
                 cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
                 continue
             with self.lock:
@@ -68,6 +69,7 @@ class VideoWorker:
                     print(f"[ERROR] callback failed: {e}")
                     continue
             else:
+                time.sleep(1/30)
                 results, gates, gate_name_map = ([], [], {})
 
             # -------- Drawer畫圖 --------

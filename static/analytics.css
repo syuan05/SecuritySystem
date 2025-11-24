@@ -104,26 +104,34 @@ canvas {
   animation: fadeInUp 0.8s ease both;
 }
 
-/* ===== Tabs ===== */
+/* ===== Minimal Grey Navbar-Style Tabs ===== */
 .ana-tabs {
   display: flex;
-  gap: 20px;
-  margin-bottom: 25px;
+  gap: 32px;
+  margin-bottom: 24px;
+  border-bottom: 1px solid #e5e7eb;
 }
 
 .ana-tab {
-  padding: 8px 16px;
-  border-radius: 8px;
-  cursor: pointer;
-  background: var(--bg-light);
+  padding: 10px 4px;
+  font-size: 17px;
   font-weight: 600;
-  color: var(--bg-dark);
-  transition: 0.25s;
+  color: #6b7280;
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+  transition: color 0.2s ease, border-bottom-color 0.2s ease;
+  background: transparent !important;
+  border-radius: 0 !important;
+}
+
+.ana-tab:hover {
+  color: #374151;
 }
 
 .ana-tab.active {
-  background: var(--accent);
-  color: white;
+  background: transparent !important;
+  color: #111827 !important;
+  border-bottom: 3px solid #3b82f6 !important;
 }
 
 /* Hidden */
@@ -141,6 +149,12 @@ canvas {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.safety-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.12);
 }
 
 .safety-score {
@@ -152,6 +166,7 @@ canvas {
   display: flex;
   justify-content: center;
   align-items: center;
+  flex-shrink: 0;
 }
 
 .safety-score.excellent { background:#3fa34d; color:white; }
@@ -162,192 +177,519 @@ canvas {
 .safety-btn {
   background: #3b82f6;
   color: white;
-  padding: 8px 12px;
+  padding: 8px 16px;
   border-radius: 8px;
-  text-decoration: none;
-}
-/* ===== Minimal Grey Navbar-Style Tabs ===== */
-.ana-tabs {
-  display: flex;
-  gap: 32px;
-  margin-bottom: 24px;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-.ana-tab {
-  padding: 10px 4px;
-  font-size: 17px;
-  font-weight: 600;
-  color: #6b7280; /* 淺灰 */
+  border: none;
   cursor: pointer;
-  border-bottom: 3px solid transparent;
-  transition: color 0.2s ease, border-bottom-color 0.2s ease;
-  background: transparent !important;
-  border-radius: 0 !important;
-  color: #6b7280 !important;
-  padding: 10px 4px !important;
+  font-weight: 500;
+  transition: background 0.2s ease, transform 0.2s ease;
+  flex-shrink: 0;
 }
 
-.ana-tab:hover {
-  color: #374151;
+.safety-btn:hover {
+  background: #2563eb;
+  transform: translateY(-2px);
 }
 
-.ana-tab.active {
-  background: transparent !important;
-  color: #111827 !important;
-  border-bottom: 3px solid #3b82f6 !important;
-}
-/* ===== Slide Panel Overlay ===== */
-.panel-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0,0,0,0.35);
-  backdrop-filter: blur(2px);
-  z-index: 90;
-  opacity: 0;
-  transition: opacity 0.25s ease;
-}
-
-.panel-overlay.show {
-  opacity: 1;
-}
-
-.hidden {
-  display: none !important;
-}
-
-/* ===== Slide Panel (Right side) ===== */
-.safety-panel {
-  position: fixed;
-  top: 0;
-  right: -450px; /* 初始在畫面外 */
-  width: 450px;
-  height: 100%;
-  background: white;
-  z-index: 100;
-  box-shadow: -4px 0px 12px rgba(0,0,0,0.1);
-  transition: right 0.3s ease;
-  padding: 20px;
-  overflow-y: auto;
-}
-
-.safety-panel.show {
-  right: 0;  /* 滑入 */
-}
-
-.panel-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 15px;
-}
-
-.panel-close {
-  font-size: 28px;
-  cursor: pointer;
-}
-
-.panel-img {
-  width: 100%;
-  border-radius: 10px;
-  margin-bottom: 15px;
-}
-
-.panel-content h4 {
-  margin-top: 15px;
-}
+/* ========================================
+   展開區域 (完整版)
+   ======================================== */
 
 .safety-expand {
-  margin-top: 10px;
   background: #f9fafb;
   border-radius: 12px;
-  padding: 15px;
+  padding: 20px;
   border-left: 5px solid #3b82f6;
   animation: slideDown 0.3s ease;
   width: 100%;
-  margin: 15px 0;
+  margin: 0 0 15px 0;
+  box-shadow: inset 0 2px 8px rgba(0,0,0,0.05);
 }
 
 @keyframes slideDown {
-  from { opacity: 0; transform: translateY(-5px); }
+  from { opacity: 0; transform: translateY(-10px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 
-.safety-expand h4 {
-  margin-top: 15px;
-  font-size: 15px;
+/* 兩欄佈局 */
+.expand-layout {
+  display: flex;
+  gap: 25px;
+  align-items: flex-start;
+}
+
+/* 左側圖片欄 */
+.expand-left {
+  flex: 0 0 45%;
+  max-width: 45%;
+}
+
+.expand-img {
+  width: 100%;
+  height: auto;
+  border-radius: 12px;
+  object-fit: contain;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  background: white;
+  padding: 5px;
+}
+
+/* 右側內容欄 */
+.expand-right {
+  flex: 1;
+  min-width: 0;
+}
+
+.expand-right h4 {
+  margin-top: 20px;
+  margin-bottom: 12px;
+  font-size: 16px;
   font-weight: 700;
   color: #1f2937;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
 }
 
-.safety-expand ul {
-  margin: 8px 0 15px 0;
-  padding-left: 20px;
+.expand-right h4:first-child {
+  margin-top: 0;
 }
 
-.safety-expand ul li {
-  margin-bottom: 5px;
-  font-size: 14px;
-  color: #374151;
-}
-
+/* Icon 顏色 */
 .icon-title {
   font-size: 18px;
 }
 
-/* 區塊標題 ICON */
 .icon-issue { color:#d64550; }
 .icon-sug   { color:#2563eb; }
 .icon-law   { color:#16a34a; }
 
-.expand-img {
-  width: 100%;
-  max-height: 300px;
-  object-fit: cover;
+/* ========================================
+   AI 智能分析區塊
+   ======================================== */
+
+.analysis-section {
+  margin-bottom: 20px;
+}
+
+.analysis-box {
+  background: white;
   border-radius: 10px;
-  margin-bottom: 15px;
-  box-shadow: var(--shadow);
+  padding: 15px;
+  border-left: 4px solid #8b5cf6;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
 }
-.expand-layout {
+
+.analysis-box p {
+  margin: 8px 0;
+  font-size: 14px;
+  color: #374151;
+  line-height: 1.6;
+}
+
+.analysis-box strong {
+  color: #1f2937;
+  font-weight: 600;
+}
+
+/* ========================================
+   檢測問題區塊
+   ======================================== */
+
+.issues-section {
+  margin-bottom: 20px;
+}
+
+.issue-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.issue-item {
+  background: white;
+  border-radius: 10px;
+  padding: 15px;
+  margin-bottom: 12px;
+  border-left: 4px solid #f59e0b;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  transition: transform 0.2s ease;
+}
+
+.issue-item:hover {
+  transform: translateX(3px);
+}
+
+.issue-item.severity-high {
+  border-left-color: #dc2626;
+}
+
+.issue-item.severity-medium {
+  border-left-color: #f59e0b;
+}
+
+.issue-item.severity-low {
+  border-left-color: #10b981;
+}
+
+.issue-header {
   display: flex;
-  gap: 20px;
-  align-items: flex-start;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
 }
 
-/* 左邊圖片欄 */
-.expand-left {
-  flex: 0 0 40%; /* 固定 40% 寬 */
+.issue-header strong {
+  color: #1f2937;
+  font-size: 15px;
 }
 
-.expand-img {
-  width: 100%;
-  height: auto;        /* ⭐ 保留原始比例 */
+.severity-badge {
+  padding: 4px 10px;
   border-radius: 12px;
-  object-fit: contain; /* ⭐ 不裁切、不壓縮 */
-  box-shadow: var(--shadow);
+  font-size: 12px;
+  font-weight: 600;
 }
 
-/* 右邊文字欄 */
-.expand-right {
+.severity-badge.high {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.severity-badge.medium {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.severity-badge.low {
+  background: #d1fae5;
+  color: #059669;
+}
+
+.issue-desc {
+  font-size: 14px;
+  color: #4b5563;
+  margin: 8px 0;
+  line-height: 1.6;
+}
+
+.issue-law {
+  font-size: 13px;
+  color: #6b7280;
+  margin: 6px 0;
+  padding: 6px 10px;
+  background: #f3f4f6;
+  border-radius: 6px;
+}
+
+.issue-action {
+  font-size: 13px;
+  color: #2563eb;
+  margin: 6px 0;
+  padding: 6px 10px;
+  background: #eff6ff;
+  border-radius: 6px;
+}
+
+/* ========================================
+   改善建議區塊
+   ======================================== */
+
+.suggestions-section {
+  margin-bottom: 20px;
+}
+
+.suggestion-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.suggestion-list li {
+  background: white;
+  padding: 12px 15px;
+  margin-bottom: 8px;
+  border-radius: 8px;
+  border-left: 4px solid #3b82f6;
+  font-size: 14px;
+  color: #374151;
+  line-height: 1.6;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+  transition: transform 0.2s ease;
+}
+
+.suggestion-list li:hover {
+  transform: translateX(3px);
+}
+
+/* ========================================
+   相關法規區塊（完整版）
+   ======================================== */
+
+.legal-section {
+  margin-bottom: 20px;
+}
+
+.legal-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.legal-item {
+  background: white;
+  border-radius: 10px;
+  padding: 15px;
+  border-left: 4px solid #10b981;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  transition: transform 0.2s ease;
+}
+
+.legal-item:hover {
+  transform: translateX(3px);
+}
+
+.legal-item.violated {
+  border-left-color: #dc2626;
+  background: #fef2f2;
+}
+
+.legal-item.compliant {
+  border-left-color: #10b981;
+  background: #f0fdf4;
+}
+
+.legal-item.unknown {
+  border-left-color: #6b7280;
+  background: #f9fafb;
+}
+
+.legal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.legal-header strong {
+  color: #1f2937;
+  font-size: 15px;
   flex: 1;
 }
 
-.expand-right h4 {
-  margin-top: 10px;
+.compliance-badge {
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  flex-shrink: 0;
 }
 
-.expand-right ul {
-  margin: 8px 0 16px 0;
-  padding-left: 20px;
+.compliance-badge.violated {
+  background: #fee2e2;
+  color: #dc2626;
 }
+
+.compliance-badge.compliant {
+  background: #d1fae5;
+  color: #059669;
+}
+
+.compliance-badge.unknown {
+  background: #f3f4f6;
+  color: #6b7280;
+}
+
+.legal-relevance {
+  font-size: 13px;
+  color: #6b7280;
+  margin: 6px 0;
+  padding: 6px 10px;
+  background: rgba(59, 130, 246, 0.05);
+  border-radius: 6px;
+}
+
+.legal-content {
+  font-size: 14px;
+  color: #4b5563;
+  margin: 8px 0 0 0;
+  line-height: 1.6;
+  padding: 10px;
+  background: #f9fafb;
+  border-radius: 6px;
+  border-left: 3px solid #e5e7eb;
+}
+
+/* ========================================
+   時間戳記
+   ======================================== */
 
 .created-time {
   opacity: 0.6;
   font-size: 13px;
+  margin-top: 20px;
+  padding-top: 15px;
+  border-top: 1px solid #e5e7eb;
+  color: #6b7280;
+}
+
+/* ========================================
+   響應式設計
+   ======================================== */
+
+@media (max-width: 768px) {
+  .expand-layout {
+    flex-direction: column;
+  }
+
+  .expand-left {
+    flex: 0 0 100%;
+    max-width: 100%;
+  }
+
+  .legal-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .issue-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+}
+/* ===== 全寬法規區塊 ===== */
+
+.legal-fullwidth { width: 100%; margin-top: 20px; }
+
+.legal-fw-box {
+  background: #fff7e6;
+  border-left: 5px solid #f7a531;
+  padding: 20px;
+  border-radius: 10px;
+}
+
+.law-section-title {
+  background: #fbe0a8;
+  padding: 6px 12px;
+  border-radius: 6px;
+  margin-bottom: 20px;
+  display: inline-block;
+  font-weight: 600;
+}
+
+.law-block-title {
+  font-size: 15px;
+  font-weight: bold;
+  margin-bottom: 6px;
+  color: #5a3c00;
+}
+
+.law-list li {
+  margin-bottom: 6px;
+  line-height: 1.4;
+  color: #333;
+}
+
+.law-detail {
+  background: white;
+  border-left: 3px solid #ffb84d;
+  padding: 12px;
+  border-radius: 8px;
+  line-height: 1.6;
+}
+.law-one-line {
+  white-space: normal;  /* 讓文字自動換行 */
+  display: block;
+  font-size: 15px;
+  color: #5a3c00;
+  line-height: 1.6;
+}
+
+/* ========== 法規列表優化版 ========== */
+
+.law-list {
+  list-style: none;
+  padding-left: 0;
+  margin: 0;
+}
+
+.law-item {
+  margin-bottom: 14px;
+}
+
+.law-head {
+  display: flex;
+  align-items: baseline;
+  font-size: 15px;
+  color: #4a2e00; /* 深咖啡色 */
+  font-weight: 600;
+}
+
+.law-bullet {
+  margin-right: 6px;
+  color: #4a2e00;
+  font-size: 18px;
+  line-height: 1;
+}
+
+.law-title strong {
+  color: #3b2300;
+  font-size: 16px;
+}
+
+.law-article {
+  margin-left: 4px;
+  color: #d9822b; /* 條號橘色 */
+  font-weight: bold;
+}
+
+.law-content {
+  margin-left: 28px;  /* 讓條文縮排對齊 */
+  margin-top: 4px;
+  line-height: 1.55;
+  font-size: 14px;
+  color: #4a4a4a;
+  white-space: pre-line;
+}
+
+.law-detail {
+  line-height: 1.7;
+  font-size: 15px;
+  color: #2c2c2c;
+  padding: 12px 14px;
+  background: #fffef8;
+  border-left: 4px solid #ffb84d;
+  border-radius: 8px;
+}
+
+/* ===== 法規條文折疊 ===== */
+.law-content-wrapper {
+  max-height: 4.8em; /* 大約 3 行文字 */
+  overflow: hidden;
+  position: relative;
+  transition: max-height 0.3s ease;
+}
+
+.law-content-wrapper.expanded {
+  max-height: 800px; /* 展開後高度（足夠即可） */
+}
+
+.law-content-fade {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 1.8em;
+  background: linear-gradient(to bottom, rgba(255,255,255,0), #fffef8 90%);
+}
+
+.law-toggle-btn {
+  color: #d9822b;
+  cursor: pointer;
+  margin-top: 6px;
+  font-weight: 600;
+  display: inline-block;
 }

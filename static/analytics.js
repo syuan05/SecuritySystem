@@ -1,3 +1,5 @@
+// analytics.js — 完整版（AI Safety 改用 base64 + 法規完整顯示）
+
 let currentCamera = "";
 let hourlyChart = null;
 let weeklyChart = null;
@@ -58,12 +60,11 @@ function renderAllCharts() {
   setupCustomChart();
 }
 
-// === 折線圖：近 24 小時 ===
+// === 折線圖:近 24 小時 ===
 function loadHourlyChart() {
   fetch(`/api/people/hourly?camera_id=${currentCamera}`)
     .then(res => res.json())
     .then(data => {
-      // convert timestamp list → hour buckets
       let now = new Date();
       let buckets = [];
 
@@ -78,7 +79,6 @@ function loadHourlyChart() {
         });
       }
 
-      // count events into correct bucket
       data.forEach(row => {
         let ts = new Date(row.timestamp);
         buckets.forEach(b => {
@@ -119,7 +119,7 @@ function loadHourlyChart() {
               bodyFont: { size: 13 },
               padding: 10,
               cornerRadius: 8,
-              callbacks: { label: ctx => `People Count：${ctx.parsed.y}` }
+              callbacks: { label: ctx => `People Count:${ctx.parsed.y}` }
             }
           },
           scales: {
@@ -137,7 +137,7 @@ function loadHourlyChart() {
     });
 }
 
-// === 柱狀圖：近 7 天 ===
+// === 柱狀圖:近 7 天 ===
 function loadWeeklyChart() {
   fetch(`/api/people/weekly?camera_id=${currentCamera}`)
     .then(res => res.json())
@@ -166,7 +166,7 @@ function loadWeeklyChart() {
             legend: { display: false },
             tooltip: {
               backgroundColor: "rgba(15,23,42,0.9)",
-              callbacks: { label: ctx => `People Count：${ctx.parsed.y}` }
+              callbacks: { label: ctx => `People Count:${ctx.parsed.y}` }
             }
           },
           scales: {
@@ -184,7 +184,7 @@ function loadWeeklyChart() {
     });
 }
 
-// === 自訂時段：純柱狀圖 ===
+// === 自訂時段:純柱狀圖 ===
 function setupCustomChart() {
   const ctx = document.getElementById("customChart");
   if (customChart) customChart.destroy();
@@ -216,7 +216,7 @@ function setupCustomChart() {
               legend: { display: false },
               tooltip: {
                 backgroundColor: "rgba(15,23,42,0.9)",
-                callbacks: { label: ctx => `People Count：${ctx.parsed.y}` }
+                callbacks: { label: ctx => `People Count:${ctx.parsed.y}` }
               }
             },
             scales: {
@@ -234,7 +234,6 @@ function setupCustomChart() {
       });
   }
 
-  // 初始
   loadCustomData("09:00", "18:00");
 
   document.getElementById("filterBtn").addEventListener("click", () => {
@@ -244,6 +243,10 @@ function setupCustomChart() {
   });
 }
 
+// ========================================
+// AI Safety Records (改進版)
+// ========================================
+
 async function loadSafetyRecords() {
   const cam = document.getElementById("safetyCameraSelect").value;
   const res = await fetch(`/api/safety/list?camera_id=${cam}`);
@@ -252,70 +255,102 @@ async function loadSafetyRecords() {
   const box = document.getElementById("safetyList");
   box.innerHTML = "";
 
+  if (data.length === 0) {
+    box.innerHTML = `
+      <div style="text-align:center; padding:40px; color:#6b7280;">
+        <p style="font-size:18px;">📋 尚無安全分析記錄</p>
+        <p style="font-size:14px; margin-top:8px;">等待系統自動執行分析...</p>
+      </div>
+    `;
+    return;
+  }
+
   data.forEach(r => {
     const level = getSafetyLevelByScore(r.safety_score);
     const div = document.createElement("div");
     div.className = "safety-item";
 
     div.innerHTML = `
-  <div class="safety-score ${level}">
-    ${r.safety_score ?? "--"}
-  </div>
+      <div class="safety-score ${level}">
+        ${r.safety_score ?? "--"}
+      </div>
 
-  <div style="flex:1; padding:0 15px;">
-    <b>${r.camera_name}</b> (${r.location_type || "Unknown"})<br>
-    <small>${r.summary || ""}</small><br>
-    <small style="opacity:0.6">${r.created_at}</small>
-  </div>
+      <div style="flex:1; padding:0 15px;">
+        <b>${r.camera_name}</b> (${r.location_type || "Unknown"})<br>
+        <small>${r.summary || ""}</small><br>
+        <small style="opacity:0.6">${formatDateTime(r.created_at)}</small>
+      </div>
 
-  <button class="safety-btn">▼</button>
-`;
+      <button class="safety-btn">▼ 詳細</button>
+    `;
 
     div.querySelector(".safety-btn").onclick = () => openSafetyPanel(r, div);
 
     box.appendChild(div);
   });
 }
+// ========================================
+// 展開完整分析 (統一區塊版本)
+// ========================================
+
 function openSafetyPanel(data, parentDiv) {
   // 若已展開 → 收合
   const next = parentDiv.nextElementSibling;
   if (next && next.classList.contains("safety-expand")) {
     next.remove();
+    parentDiv.querySelector(".safety-btn").textContent = "▼ 詳細";
     return;
   }
 
   // 收起其他展開內容
   document.querySelectorAll(".safety-expand").forEach(el => el.remove());
+  document.querySelectorAll(".safety-btn").forEach(btn => btn.textContent = "▼ 詳細");
+
+  // 更改按鈕文字
+  parentDiv.querySelector(".safety-btn").textContent = "▲ 收合";
 
   // === 安全處理 Issues ===
-  let issues = [];
-  if (Array.isArray(data.issues)) {
-    issues = data.issues;
-  } else if (typeof data.issues === "string") {
-    const s = data.issues.trim();
-    if (s !== "" && s !== "null" && s !== "None") {
-      try {
-        const parsed = JSON.parse(s);
-        if (Array.isArray(parsed)) issues = parsed;
-      } catch { }
-    }
-  }
+  let issues = parseJSON(data.issues, []);
 
   // === 安全處理 Suggestions ===
-  let suggestions = [];
-  if (Array.isArray(data.suggestions)) {
-    suggestions = data.suggestions;
-  } else if (typeof data.suggestions === "string") {
-    const s = data.suggestions.trim();
-    if (s !== "" && s !== "null" && s !== "None") {
-      try {
-        const parsed = JSON.parse(s);
-        if (Array.isArray(parsed)) suggestions = parsed;
-        else suggestions = [s];
-      } catch {
-        suggestions = [s];
-      }
-    }
+  let suggestions = parseJSON(data.suggestions, []);
+
+  // === 安全處理 Legal Refs ===
+  let legalRefs = parseJSON(data.legal_refs, []);
+
+  // === 圖片來源:優先使用 base64 ===
+  let imageSrc = "";
+  if (data.image_base64 && data.image_base64.trim() !== "") {
+    imageSrc = `data:image/jpeg;base64,${data.image_base64}`;
+  } else if (data.image_url) {
+    imageSrc = data.image_url;
+  }
+
+  // === 統計違反與符合的法規數量 ===
+  const violatedCount = legalRefs.filter(l => l.compliance_status === "violated").length;
+  const compliantCount = legalRefs.filter(l => l.compliance_status === "compliant").length;
+  const unknownCount = legalRefs.filter(l => l.compliance_status === "unknown").length;
+
+  // === 決定合規狀態 ===
+  let complianceStatus = "部分符合";
+  let complianceColor = "#f59e0b"; // 橘色
+  if (violatedCount > 0) {
+    complianceStatus = "違反";
+    complianceColor = "#dc2626"; // 紅色
+  } else if (compliantCount === legalRefs.length && legalRefs.length > 0) {
+    complianceStatus = "符合";
+    complianceColor = "#16a34a"; // 綠色
+  }
+
+  // === 取得 merged_compliance_detail ===
+  let complianceDetail = data.merged_compliance_detail || "";
+  
+  // 如果沒有 merged_compliance_detail，則從 legal_refs 組合
+  if (!complianceDetail && legalRefs.length > 0) {
+    complianceDetail = legalRefs
+      .map(law => law.content_summary || "")
+      .filter(text => text.trim() !== "")
+      .join(" ");
   }
 
   // === Create expand div ===
@@ -325,48 +360,178 @@ function openSafetyPanel(data, parentDiv) {
   expand.innerHTML = `
     <div class="expand-layout">
       
+      <!-- 左側圖片 -->
       <div class="expand-left">
-        <img src="${data.image_url || ""}" class="expand-img">
+        ${imageSrc ? `<img src="${imageSrc}" class="expand-img" alt="Safety Image">` : '<p style="color:#999;">無圖片</p>'}
       </div>
 
+      <!-- 右側內容 -->
       <div class="expand-right">
+        
+        <!-- ⚠️ 檢測問題 (統一區塊) -->
+        ${issues.length > 0 ? `
+          <div class="issues-section">
+            <h4><span class="icon-title icon-issue">⚠</span> 檢測問題 (${issues.length})</h4>
+            <div style="background: white; border-radius: 10px; padding: 15px; border-left: 4px solid #f59e0b; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+              <ul style="list-style: none; padding: 0; margin: 0;">
+                ${issues.map((issue, idx) => {
+                  const severityBadge = `<span class="severity-badge ${issue.severity || 'medium'}">${getSeverityText(issue.severity)}</span>`;
+                  const lawText = issue.law ? `<span style="color:#dc2626; font-size:13px; font-weight:500;">違反法規: ${issue.law}</span>` : "";
+                  const divider = idx < issues.length - 1 ? 'border-bottom: 1px solid #f3f4f6;' : '';
+                  
+                  return `
+                    <li style="margin-bottom: ${idx < issues.length - 1 ? '15px' : '0'}; padding-bottom: ${idx < issues.length - 1 ? '15px' : '0'}; ${divider}">
+                      <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                        <strong style="color:#1f2937; font-size: 15px;">${issue.name || "未命名問題"}</strong>
+                        ${severityBadge}
+                      </div>
+                      <p style="margin: 6px 0; color:#4b5563; font-size: 14px; line-height: 1.6;">
+                        ${issue.description || ""}
+                      </p>
+                    </li>
+                  `;
+                }).join("")}
+              </ul>
+            </div>
+          </div>
+        ` : '<p style="color:#16a34a; font-weight:600; margin-bottom: 20px;">✅ 未發現明顯問題</p>'}
 
-        <h4><span class="icon-title icon-issue">⚠</span> Safety Issues</h4>
-        <ul>
-          ${issues.map(i => `
-            <li>
-              <b>${i.name}</b> — ${i.description}
-              ${i.law ? `<span style="color:#888;">（${i.law}）</span>` : ""}
-            </li>
-          `).join("")}
-        </ul>
+        <!-- ✨ 改善建議 (統一區塊) -->
+        ${suggestions.length > 0 ? `
+          <div class="suggestions-section">
+            <h4><span class="icon-title icon-sug">✨</span> 改善建議 (${suggestions.length})</h4>
+            <div style="background: white; border-radius: 10px; padding: 15px; border-left: 4px solid #3b82f6; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+              <ul style="list-style: none; padding: 0; margin: 0;">
+                ${suggestions.map(sug => `
+                  <li style="margin-bottom: 10px; padding-left: 20px; position: relative; color: #374151; font-size: 14px; line-height: 1.6;">
+                    <span style="position: absolute; left: 0; color: #3b82f6; font-weight: bold;">•</span>
+                    ${sug}
+                  </li>
+                `).join("")}
+              </ul>
+            </div>
+          </div>
+        ` : ""}
 
-        <h4><span class="icon-title icon-sug">✨</span> Suggestions</h4>
-        <ul>
-          ${suggestions.map(s => `<li>${s}</li>`).join("")}
-        </ul>
-
-        <p class="created-time">Created: ${data.created_at}</p>
       </div>
-
+      
     </div>
-  `;
+    <!-- 法規依據 -->
+      ${legalRefs.length > 0 ? `
+    <div class="legal-fullwidth">
+      <h4><span class="icon-title icon-law">📚</span> 法規依據</h4>
 
+      <div class="legal-fw-box">
+
+        <!-- 📘 適用法規 -->
+        <div class="law-block">
+          <div class="law-block-title">■ 適用法規：</div>
+          <ul class="law-list">
+            ${legalRefs.map(law => {
+              // 提取法規名稱和條號
+              const lawName = law.law_name || law.law || "未知法規";
+              const article = law.article || "";
+              const content = law.full_content || law.content_summary || law.content || "";
+              
+              return `
+              <li>
+                <span class="law-one-line">
+                  • ${lawName}${article} - ${content}
+                </span>
+              </li>
+              `;
+            }).join("")}
+          </ul>
+        </div>
+
+        <!-- 📙 合規詳情 -->
+        ${complianceDetail ? `
+          <div class="law-block">
+            <div class="law-block-title">■ 合規詳情：</div>
+            <p class="law-detail">
+              ${complianceDetail}
+            </p>
+          </div>
+        ` : ""}
+
+      </div>
+    </div>
+  ` : ""}
+
+    <p class="created-time">📅 分析時間: ${formatDateTime(data.created_at)}</p>
+  `;
 
   parentDiv.after(expand);
 
-  // ⭐ 展開後自動滾動
+  // 展開後自動滾動
   setTimeout(() => {
     expand.scrollIntoView({ behavior: "smooth", block: "start" });
-  }, 80);
+  }, 100);
 }
 
+// ========================================
+// 工具函數
+// ========================================
+
+function parseJSON(data, defaultValue) {
+  if (Array.isArray(data)) return data;
+  if (typeof data === "object" && data !== null) return data;
+  if (typeof data === "string") {
+    const s = data.trim();
+    if (s === "" || s === "null" || s === "None") return defaultValue;
+    try {
+      const parsed = JSON.parse(s);
+      return parsed || defaultValue;
+    } catch {
+      return defaultValue;
+    }
+  }
+  return defaultValue;
+}
 
 function getSafetyLevelByScore(score) {
   if (score >= 80) return "excellent";
   if (score >= 60) return "good";
   if (score >= 40) return "fair";
   return "poor";
+}
+
+function getSeverityText(severity) {
+  const map = {
+    "high": "高風險",
+    "medium": "中風險",
+    "low": "低風險"
+  };
+  return map[severity] || "未知";
+}
+
+function getComplianceClass(status) {
+  const map = {
+    "compliant": "compliant",
+    "violated": "violated",
+    "unknown": "unknown"
+  };
+  return map[status] || "unknown";
+}
+
+function getComplianceText(status) {
+  const map = {
+    "compliant": "✅ 符合",
+    "violated": "❌ 違反",
+    "unknown": "❓ 待確認"
+  };
+  return map[status] || "❓ 未知";
+}
+
+function formatDateTime(dateStr) {
+  if (!dateStr) return "未知時間";
+  const d = new Date(dateStr);
+  return `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`;
+}
+
+function formatDate(dateStr) {
+  const d = new Date(dateStr);
+  return `${d.getMonth() + 1}/${d.getDate()}`;
 }
 
 // 攝影機下拉清單
@@ -384,9 +549,3 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   sel.onchange = loadSafetyRecords;
 });
-
-// === 日期格式工具 ===
-function formatDate(dateStr) {
-  const d = new Date(dateStr);
-  return `${d.getMonth() + 1}/${d.getDate()}`;
-}
