@@ -1,9 +1,14 @@
-// analytics.js — 完整版（AI Safety 改用 base64 + 法規完整顯示）
+// analytics.js – 優化版（摺疊 + 載入更多）
 
 let currentCamera = "";
 let hourlyChart = null;
 let weeklyChart = null;
 let customChart = null;
+
+// 載入更多相關變數
+let allSafetyRecords = [];
+let displayedCount = 0;
+const RECORDS_PER_LOAD = 5;
 
 document.addEventListener("DOMContentLoaded", () => {
   loadCameraOptions().then(() => {
@@ -18,7 +23,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
 // ======== Tab 切換 ========
 document.addEventListener("DOMContentLoaded", () => {
-
   const tabFlow = document.getElementById("tab-flow");
   const tabSafety = document.getElementById("tab-safety");
   const flowSection = document.getElementById("flow-section");
@@ -244,13 +248,16 @@ function setupCustomChart() {
 }
 
 // ========================================
-// AI Safety Records (改進版)
+// AI Safety Records (優化版 - 載入更多)
 // ========================================
 
 async function loadSafetyRecords() {
   const cam = document.getElementById("safetyCameraSelect").value;
   const res = await fetch(`/api/safety/list?camera_id=${cam}`);
   const data = await res.json();
+
+  allSafetyRecords = data;
+  displayedCount = 0;
 
   const box = document.getElementById("safetyList");
   box.innerHTML = "";
@@ -265,7 +272,15 @@ async function loadSafetyRecords() {
     return;
   }
 
-  data.forEach(r => {
+  // 顯示前 5 筆
+  renderMoreRecords();
+}
+
+function renderMoreRecords() {
+  const box = document.getElementById("safetyList");
+  const toDisplay = allSafetyRecords.slice(displayedCount, displayedCount + RECORDS_PER_LOAD);
+
+  toDisplay.forEach(r => {
     const level = getSafetyLevelByScore(r.safety_score);
     const div = document.createElement("div");
     div.className = "safety-item";
@@ -288,9 +303,45 @@ async function loadSafetyRecords() {
 
     box.appendChild(div);
   });
+
+  displayedCount += toDisplay.length;
+
+  // 更新或移除「載入更多」按鈕
+  updateLoadMoreButton();
 }
+
+function updateLoadMoreButton() {
+  const box = document.getElementById("safetyList");
+  let loadMoreContainer = document.getElementById("loadMoreContainer");
+
+  // 如果已經顯示全部，移除按鈕
+  if (displayedCount >= allSafetyRecords.length) {
+    if (loadMoreContainer) {
+      loadMoreContainer.remove();
+    }
+    return;
+  }
+
+  // 如果按鈕不存在，創建它
+  if (!loadMoreContainer) {
+    loadMoreContainer = document.createElement("div");
+    loadMoreContainer.id = "loadMoreContainer";
+    loadMoreContainer.className = "load-more-container";
+    loadMoreContainer.innerHTML = `
+      <button class="load-more-btn" onclick="renderMoreRecords()">
+        載入更多 (剩餘 ${allSafetyRecords.length - displayedCount} 筆)
+      </button>
+    `;
+    box.appendChild(loadMoreContainer);
+  } else {
+    // 更新按鈕文字
+    const btn = loadMoreContainer.querySelector(".load-more-btn");
+    btn.textContent = `載入更多 (剩餘 ${allSafetyRecords.length - displayedCount} 筆)`;
+  }
+}
+
 // ========================================
-// 展開完整分析 (統一區塊版本)
+// 展開完整分析 (優化版 - 可摺疊)
 // ========================================
 
 function openSafetyPanel(data, parentDiv) {
@@ -326,26 +377,9 @@ function openSafetyPanel(data, parentDiv) {
     imageSrc = data.image_url;
   }
 
-  // === 統計違反與符合的法規數量 ===
-  const violatedCount = legalRefs.filter(l => l.compliance_status === "violated").length;
-  const compliantCount = legalRefs.filter(l => l.compliance_status === "compliant").length;
-  const unknownCount = legalRefs.filter(l => l.compliance_status === "unknown").length;
-
-  // === 決定合規狀態 ===
-  let complianceStatus = "部分符合";
-  let complianceColor = "#f59e0b"; // 橘色
-  if (violatedCount > 0) {
-    complianceStatus = "違反";
-    complianceColor = "#dc2626"; // 紅色
-  } else if (compliantCount === legalRefs.length && legalRefs.length > 0) {
-    complianceStatus = "符合";
-    complianceColor = "#16a34a"; // 綠色
-  }
-
   // === 取得 merged_compliance_detail ===
   let complianceDetail = data.merged_compliance_detail || "";
   
-  // 如果沒有 merged_compliance_detail，則從 legal_refs 組合
   if (!complianceDetail && legalRefs.length > 0) {
     complianceDetail = legalRefs
       .map(law => law.content_summary || "")
@@ -360,55 +394,64 @@ function openSafetyPanel(data, parentDiv) {
   expand.innerHTML = `
     <div class="expand-layout">
       
-      <!-- 左側圖片 -->
-      <div class="expand-left">
-        ${imageSrc ? `<img src="${imageSrc}" class="expand-img" alt="Safety Image">` : '<p style="color:#999;">無圖片</p>'}
-      </div>
+      <!-- 圖片 -->
+      ${imageSrc ? `<img src="${imageSrc}" class="expand-img" alt="Safety Image">` : '<p style="color:#999;">無圖片</p>'}
 
-      <!-- 右側內容 -->
+      <!-- 內容區 -->
       <div class="expand-right">
         
-        <!-- ⚠️ 檢測問題 (統一區塊) -->
+        <!-- ⚠️ 檢測問題 (可摺疊) -->
         ${issues.length > 0 ? `
-          <div class="issues-section">
-            <h4><span class="icon-title icon-issue">⚠</span> 檢測問題 (${issues.length})</h4>
-            <div style="background: white; border-radius: 10px; padding: 15px; border-left: 4px solid #f59e0b; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
-              <ul style="list-style: none; padding: 0; margin: 0;">
-                ${issues.map((issue, idx) => {
-                  const severityBadge = `<span class="severity-badge ${issue.severity || 'medium'}">${getSeverityText(issue.severity)}</span>`;
-                  const lawText = issue.law ? `<span style="color:#dc2626; font-size:13px; font-weight:500;">違反法規: ${issue.law}</span>` : "";
-                  const divider = idx < issues.length - 1 ? 'border-bottom: 1px solid #f3f4f6;' : '';
-                  
-                  return `
-                    <li style="margin-bottom: ${idx < issues.length - 1 ? '15px' : '0'}; padding-bottom: ${idx < issues.length - 1 ? '15px' : '0'}; ${divider}">
-                      <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-                        <strong style="color:#1f2937; font-size: 15px;">${issue.name || "未命名問題"}</strong>
-                        ${severityBadge}
-                      </div>
-                      <p style="margin: 6px 0; color:#4b5563; font-size: 14px; line-height: 1.6;">
-                        ${issue.description || ""}
-                      </p>
-                    </li>
-                  `;
-                }).join("")}
-              </ul>
+          <div class="collapsible-section">
+            <div class="collapsible-header" onclick="toggleCollapse(this)">
+              <div class="collapsible-title">
+                <span class="icon-title icon-issue">⚠</span>
+                <span>檢測問題 (${issues.length})</span>
+              </div>
+              <span class="collapsible-toggle">▼</span>
+            </div>
+            <div class="collapsible-content">
+              <div class="collapsible-content-inner">
+                <ul style="list-style: none; padding: 0; margin: 0;">
+                  ${issues.map((issue, idx) => {
+                    const severityBadge = `<span class="severity-badge ${issue.severity || 'medium'}">${getSeverityText(issue.severity)}</span>`;
+                    
+                    return `
+                      <li class="issue-item">
+                        <div class="issue-header">
+                          <strong>${issue.name || "未命名問題"}</strong>
+                          ${severityBadge}
+                        </div>
+                        <p class="issue-desc">
+                          ${issue.description || ""}
+                        </p>
+                      </li>
+                    `;
+                  }).join("")}
+                </ul>
+              </div>
             </div>
           </div>
-        ` : '<p style="color:#16a34a; font-weight:600; margin-bottom: 20px;">✅ 未發現明顯問題</p>'}
+        ` : '<p style="color:#16a34a; font-weight:600; margin-bottom: 15px;">✅ 未發現明顯問題</p>'}
 
-        <!-- ✨ 改善建議 (統一區塊) -->
+        <!-- ✨ 改善建議 (可摺疊) -->
         ${suggestions.length > 0 ? `
-          <div class="suggestions-section">
-            <h4><span class="icon-title icon-sug">✨</span> 改善建議 (${suggestions.length})</h4>
-            <div style="background: white; border-radius: 10px; padding: 15px; border-left: 4px solid #3b82f6; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
-              <ul style="list-style: none; padding: 0; margin: 0;">
-                ${suggestions.map(sug => `
-                  <li style="margin-bottom: 10px; padding-left: 20px; position: relative; color: #374151; font-size: 14px; line-height: 1.6;">
-                    <span style="position: absolute; left: 0; color: #3b82f6; font-weight: bold;">•</span>
-                    ${sug}
-                  </li>
-                `).join("")}
-              </ul>
+          <div class="collapsible-section">
+            <div class="collapsible-header suggestions" onclick="toggleCollapse(this)">
+              <div class="collapsible-title">
+                <span class="icon-title icon-sug">✨</span>
+                <span>改善建議 (${suggestions.length})</span>
+              </div>
+              <span class="collapsible-toggle">▼</span>
+            </div>
+            <div class="collapsible-content">
+              <div class="collapsible-content-inner suggestions">
+                <ul class="suggestion-list">
+                  ${suggestions.map(sug => `
+                    <li>${sug}</li>
+                  `).join("")}
+                </ul>
+              </div>
             </div>
           </div>
         ` : ""}
@@ -416,47 +459,47 @@ function openSafetyPanel(data, parentDiv) {
       </div>
       
     </div>
-    <!-- 法規依據 -->
-      ${legalRefs.length > 0 ? `
-    <div class="legal-fullwidth">
-      <h4><span class="icon-title icon-law">📚</span> 法規依據</h4>
 
-      <div class="legal-fw-box">
+    <!-- 法規依據 (不可摺疊) -->
+    ${legalRefs.length > 0 ? `
+      <div class="legal-fullwidth">
+        <h4><span class="icon-title icon-law">📚</span> 法規依據</h4>
 
-        <!-- 📘 適用法規 -->
-        <div class="law-block">
-          <div class="law-block-title">■ 適用法規：</div>
-          <ul class="law-list">
-            ${legalRefs.map(law => {
-              // 提取法規名稱和條號
-              const lawName = law.law_name || law.law || "未知法規";
-              const article = law.article || "";
-              const content = law.full_content || law.content_summary || law.content || "";
-              
-              return `
-              <li>
-                <span class="law-one-line">
-                  • ${lawName}${article} - ${content}
-                </span>
-              </li>
-              `;
-            }).join("")}
-          </ul>
-        </div>
+        <div class="legal-fw-box">
 
-        <!-- 📙 合規詳情 -->
-        ${complianceDetail ? `
+          <!-- 📘 適用法規 -->
           <div class="law-block">
-            <div class="law-block-title">■ 合規詳情：</div>
-            <p class="law-detail">
-              ${complianceDetail}
-            </p>
+            <div class="law-block-title">■ 適用法規：</div>
+            <ul class="law-list">
+              ${legalRefs.map(law => {
+                const lawName = law.law_name || law.law || "未知法規";
+                const article = law.article || "";
+                const content = law.full_content || law.content_summary || law.content || "";
+                
+                return `
+                <li>
+                  <span class="law-one-line">
+                    • ${lawName}${article} - ${content}
+                  </span>
+                </li>
+                `;
+              }).join("")}
+            </ul>
           </div>
-        ` : ""}
 
+          <!-- 📙 合規詳情 -->
+          ${complianceDetail ? `
+            <div class="law-block">
+              <div class="law-block-title">■ 合規詳情：</div>
+              <p class="law-detail">
+                ${complianceDetail}
+              </p>
+            </div>
+          ` : ""}
+
+        </div>
       </div>
-    </div>
-  ` : ""}
+    ` : ""}
 
     <p class="created-time">📅 分析時間: ${formatDateTime(data.created_at)}</p>
   `;
@@ -467,6 +510,23 @@ function openSafetyPanel(data, parentDiv) {
   setTimeout(() => {
     expand.scrollIntoView({ behavior: "smooth", block: "start" });
   }, 100);
+}
+
+// ========================================
+// 摺疊/展開功能
+// ========================================
+
+function toggleCollapse(header) {
+  const content = header.nextElementSibling;
+  const toggle = header.querySelector(".collapsible-toggle");
+  
+  if (content.classList.contains("expanded")) {
+    content.classList.remove("expanded");
+    toggle.classList.remove("expanded");
+  } else {
+    content.classList.add("expanded");
+    toggle.classList.add("expanded");
+  }
 }
 
 // ========================================
@@ -503,24 +563,6 @@ function getSeverityText(severity) {
     "low": "低風險"
   };
   return map[severity] || "未知";
-}
-
-function getComplianceClass(status) {
-  const map = {
-    "compliant": "compliant",
-    "violated": "violated",
-    "unknown": "unknown"
-  };
-  return map[status] || "unknown";
-}
-
-function getComplianceText(status) {
-  const map = {
-    "compliant": "✅ 符合",
-    "violated": "❌ 違反",
-    "unknown": "❓ 待確認"
-  };
-  return map[status] || "❓ 未知";
 }
 
 function formatDateTime(dateStr) {
