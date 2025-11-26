@@ -984,5 +984,5 @@ def get_event_summary(camera_id):
 if __name__ == "__main__":
     if os.environ.get("WERKZEUG_RUN_MAIN") == "true":
         threading.Thread(target=start_detection_system, daemon=True).start()
-        # threading.Thread(target=run_safety_scheduler, daemon=True).start()
+        threading.Thread(target=run_safety_scheduler, daemon=True).start()
     app.run(host="0.0.0.0", port=5000, debug=True)

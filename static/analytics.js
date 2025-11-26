@@ -293,7 +293,7 @@ async function loadSafetyRecords() {
         <small style="opacity:0.6">${formatDateTime(r.created_at)}</small>
       </div>
 
-      <button class="safety-btn">▼ 詳細</button>
+      <button class="safety-btn">▼ Detail</button>
     `;
 
     div.querySelector(".safety-btn").onclick = () => openSafetyPanel(r, div);
@@ -306,20 +306,20 @@ async function loadSafetyRecords() {
 // ========================================
 
 function openSafetyPanel(data, parentDiv) {
-  // 若已展開 → 收合
+  // 若已展開 → Close
   const next = parentDiv.nextElementSibling;
   if (next && next.classList.contains("safety-expand")) {
     next.remove();
-    parentDiv.querySelector(".safety-btn").textContent = "▼ 詳細";
+    parentDiv.querySelector(".safety-btn").textContent = "▼ Detail";
     return;
   }
 
   // 收起其他展開內容
   document.querySelectorAll(".safety-expand").forEach(el => el.remove());
-  document.querySelectorAll(".safety-btn").forEach(btn => btn.textContent = "▼ 詳細");
+  document.querySelectorAll(".safety-btn").forEach(btn => btn.textContent = "▼ Detail");
 
   // 更改按鈕文字
-  parentDiv.querySelector(".safety-btn").textContent = "▲ 收合";
+  parentDiv.querySelector(".safety-btn").textContent = "▲ Close";
 
   // === 安全處理 Issues ===
   let issues = parseJSON(data.issues, []);
