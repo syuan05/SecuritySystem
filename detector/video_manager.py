@@ -81,36 +81,26 @@ class VideoManager:
             print(f"[WARN] Reload skipped: camera {camera_id} not found.")
             return
 
-        modules = worker_bundle["modules"]
+        old_video = worker_bundle["video"]
+        old_url = old_video.camera_url
 
-        # === 1️⃣ 重新載入每個模組的 gates ===
-        reloaded = 0
-        for m in modules.modules:
-            if hasattr(m, "reload_gates"):
-                try:
-                    m.reload_gates()  # ✅ 這裡面已經會呼叫 request_reload_refresh()
-                    reloaded += 1
-                except Exception as e:
-                    print(f"[ERROR] Reload gates failed for module in camera {camera_id}: {e}")
+        print(f"[RELOAD] Camera {camera_id}: rebuilding ModuleManager...")
 
-        print(f"[RELOAD] Camera {camera_id}: {reloaded} modules reloaded.")
+        # 1️⃣ 重新建立全新的 ModuleManager（會重新讀 DB 的新版 gates）
+        new_manager = ModuleManager(camera_id, old_url)
+        worker_bundle["modules"] = new_manager
 
-        # === 2️⃣ 收集所有 gate IDs (人流 + inout) ===
-        person_gate_ids = []
-        for m in modules.modules:
-            if m.__class__.__name__ == "PersonCountModule":
-                if hasattr(m, "gates"):
-                    person_gate_ids.extend([g["id"] for g in m.gates])
+        # 2️⃣ 更新 callback，使 VideoWorker 使用新的 module_manager
+        def callback(frame, camera_id=camera_id, module_manager=new_manager):
+            return module_manager.process(frame, camera_id)
 
-        # === 3️⃣ 初始化 event_bus 統計（確保左上面板更新） ===
-        try:
-            from detector.event_bus import event_bus
-            event_bus.ensure_person_count_init(camera_id, person_gate_ids)
-        except Exception as e:
-            print(f"[ERROR] ensure_person_count_init failed for camera {camera_id}: {e}")
+        old_video.callback = callback
 
-        # ✅ 畫面刷新已經在各模組的 reload_gates() 中通知
-        # VideoWorker 會在下一幀自動處理，不需要在這裡操作
+        # 3️⃣ 要求 VideoWorker 下一幀強制重畫
+        old_video.request_reload_refresh()
+
+        print(f"[RELOAD] Camera {camera_id}: ModuleManager fully reloaded AND redraw requested.")
+
 
     # ==========================================================
     # 🔹 停止所有攝影機

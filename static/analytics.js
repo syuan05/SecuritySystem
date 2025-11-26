@@ -131,7 +131,10 @@ function loadHourlyChart() {
             },
             y: {
               beginAtZero: true,
-              title: { display: true, text: "People Count" }
+              title: { display: true, text: "People Count" },
+              ticks: {
+                precision: 0  // 這樣就夠了,Chart.js 會自動只顯示整數
+              }
             }
           }
         }
@@ -178,7 +181,10 @@ function loadWeeklyChart() {
             },
             y: {
               beginAtZero: true,
-              title: { display: true, text: "People Count" }
+              title: { display: true, text: "People Count" },
+              ticks: {
+                precision: 0  // 這樣就夠了,Chart.js 會自動只顯示整數
+              }
             }
           }
         }
@@ -228,7 +234,10 @@ function setupCustomChart() {
               },
               y: {
                 beginAtZero: true,
-                title: { display: true, text: "People Count" }
+                title: { display: true, text: "People Count" },
+                ticks: {
+                  precision: 0  // 這樣就夠了,Chart.js 會自動只顯示整數
+                }
               }
             }
           }
@@ -331,7 +340,7 @@ function openSafetyPanel(data, parentDiv) {
 
   // === 取得 merged_compliance_detail ===
   let complianceDetail = data.merged_compliance_detail || "";
-  
+
   if (!complianceDetail && legalRefs.length > 0) {
     complianceDetail = legalRefs
       .map(law => law.content_summary || "")
@@ -367,8 +376,8 @@ function openSafetyPanel(data, parentDiv) {
               <div class="collapsible-content-inner issue">
                 <ul style="list-style: none; padding: 0; margin: 0;">
                   ${issues.map((issue, idx) => {
-                    const severityBadge = `<span class="severity-badge ${issue.severity || 'medium'}">${getSeverityText(issue.severity)}</span>`;
-                    return `
+    const severityBadge = `<span class="severity-badge ${issue.severity || 'medium'}">${getSeverityText(issue.severity)}</span>`;
+    return `
                       <li class="issue-item">
                         <div class="issue-header">
                           <strong>${issue.name || "未命名問題"}</strong>
@@ -379,7 +388,7 @@ function openSafetyPanel(data, parentDiv) {
                         </p>
                       </li>
                     `;
-                  }).join("")}
+  }).join("")}
                 </ul>
               </div>
             </div>
@@ -429,18 +438,18 @@ function openSafetyPanel(data, parentDiv) {
             <div class="law-block-title">■ 適用法規：</div>
             <ul class="law-list">
               ${legalRefs.map(law => {
-                const lawName = law.law_name || law.law || "未知法規";
-                const article = law.article || "";
-                const content = law.full_content || law.content_summary || law.content || "";
-                
-                return `
+    const lawName = law.law_name || law.law || "未知法規";
+    const article = law.article || "";
+    const content = law.full_content || law.content_summary || law.content || "";
+
+    return `
                 <li>
                   <span class="law-one-line">
                     • ${lawName}${article} - ${content}
                   </span>
                 </li>
                 `;
-              }).join("")}
+  }).join("")}
             </ul>
           </div>
 

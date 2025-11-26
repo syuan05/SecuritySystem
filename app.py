@@ -501,12 +501,16 @@ def people_hourly():
     return jsonify(rows)
 
 
-# 🔹 近一週
+from datetime import datetime, timedelta
+
+# 🔹 近一週 (修改版 - 確保完整 7 天)
 @app.route("/api/people/weekly")
 def people_weekly():
     camera_id = request.args.get("camera_id", type=int)
     conn = get_db_connection()
     cur = conn.cursor(dictionary=True)
+    
+    # 查詢資料
     if camera_id:
         cur.execute("""
             SELECT DATE(timestamp) AS date, COUNT(*) AS count
@@ -524,11 +528,32 @@ def people_weekly():
             GROUP BY DATE(timestamp)
             ORDER BY date;
         """)
-    data = cur.fetchall()
-    cur.close(); conn.close()
-    return jsonify(data)
+    
+    raw_data = cur.fetchall()
+    cur.close()
+    conn.close()
+    
+    # 建立完整 7 天的資料結構
+    result = []
+    today = datetime.now().date()
+    
+    # 將查詢結果轉成 dict 方便查找
+    data_dict = {str(row['date']): row['count'] for row in raw_data}
+    
+    # 生成完整 7 天
+    for i in range(6, -1, -1):  # 從 6 天前到今天
+        date = today - timedelta(days=i)
+        date_str = date.strftime('%Y-%m-%d')
+        
+        result.append({
+            'date': date_str,
+            'count': data_dict.get(date_str, 0)  # 沒資料就填 0
+        })
+    
+    return jsonify(result)
 
 
+# 🔹 自訂時段 (修改版 - 填補缺失日期)
 @app.route("/api/people/custom")
 def people_custom():
     start = request.args.get("start", "09:00")
@@ -547,7 +572,6 @@ def people_custom():
 
     params = [start, end]
 
-    # 若有 camera_id，加入條件
     if camera_id:
         base_sql += " AND camera_id = %s"
         params.append(camera_id)
@@ -555,11 +579,37 @@ def people_custom():
     base_sql += " GROUP BY DATE(timestamp) ORDER BY date;"
 
     cur.execute(base_sql, params)
-    data = cur.fetchall()
+    raw_data = cur.fetchall()
 
     cur.close()
     conn.close()
-    return jsonify(data)
+    
+    # 如果沒有任何資料,回傳空陣列
+    if not raw_data:
+        return jsonify([])
+    
+    # 填補缺失的日期
+    data_dict = {str(row['date']): row['count'] for row in raw_data}
+    
+    # 取得最早和最晚的日期
+    min_date = min(raw_data, key=lambda x: x['date'])['date']
+    max_date = max(raw_data, key=lambda x: x['date'])['date']
+    
+    # 轉換成 datetime
+    current = datetime.strptime(str(min_date), '%Y-%m-%d').date()
+    end_date = datetime.strptime(str(max_date), '%Y-%m-%d').date()
+    
+    result = []
+    while current <= end_date:
+        date_str = current.strftime('%Y-%m-%d')
+        result.append({
+            'date': date_str,
+            'count': data_dict.get(date_str, 0)
+        })
+        current += timedelta(days=1)
+    
+    return jsonify(result)
+
 
 def start_detection_system():
     print("🔄 Loading cameras and starting detection system...")
@@ -568,39 +618,6 @@ def start_detection_system():
         print("✅ Detection system started successfully.")
     except Exception as e:
         print(f"❌ Detection system startup failed: {e}")
-
-@app.route("/api/camera/update", methods=["POST"])
-def update_camera():
-    data = request.json
-    camera_id = data.get("id")
-    name = data.get("name")
-    location = data.get("location")
-
-    conn = get_db_connection()
-    cur = conn.cursor()
-
-    print("🛠 Updating camera:", camera_id, name, location)
-
-    try:
-        cur.execute("""
-            UPDATE cameras
-            SET camera_name = %s,
-                location = %s
-            WHERE camera_id = %s;
-        """, (name, location, camera_id))
-
-        conn.commit()
-
-        return jsonify({"status": "ok", "message": "Camera info updated!"})
-
-    except Exception as e:
-        conn.rollback()
-        print("❌ Update error:", e)
-        return jsonify({"status": "error", "message": str(e)}), 500
-
-    finally:
-        cur.close()
-        conn.close()
 
 @app.route("/api/camera/save_all", methods=["POST"])
 def camera_save_all():
@@ -967,5 +984,5 @@ def get_event_summary(camera_id):
 if __name__ == "__main__":
     if os.environ.get("WERKZEUG_RUN_MAIN") == "true":
         threading.Thread(target=start_detection_system, daemon=True).start()
-        threading.Thread(target=run_safety_scheduler, daemon=True).start()
+        # threading.Thread(target=run_safety_scheduler, daemon=True).start()
     app.run(host="0.0.0.0", port=5000, debug=True)
